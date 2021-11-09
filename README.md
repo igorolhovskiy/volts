@@ -2,7 +2,7 @@
 
 **Voip Open Linear Tester Suite**
 
-Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/https://github.com/igorolhovskiy/voip_patrol/voip_patrol) and [`docker`](https://www.docker.com/)
+Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) and [`docker`](https://www.docker.com/)
 
 ## 10'000 ft. view
 
