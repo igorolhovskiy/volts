@@ -1,0 +1,36 @@
+FROM python:3.7-buster
+LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
+
+RUN apt-get update && \
+    apt-get install -y build-essential \
+        libcurl4-openssl-dev \
+        cmake \
+        pkg-config \
+        libasound2-dev \
+        libssl-dev \
+        libopus-dev \
+        git && \
+    mkdir -p /git && \
+    cd /git && \
+    git clone https://github.com/igorolhovskiy/voip_patrol.git &&\
+    cd voip_patrol && \
+    git submodule update --init && \
+    cd pjproject && \
+    ./configure --disable-libwebrtc --disable-opencore-amr && \
+    cp ../include/config_site.h  pjlib/include/pj/config_site.h && \
+    make dep && \
+    make && \
+    make install && \
+    cd /git/voip_patrol && \
+    cmake CMakeLists.txt && \
+    make && \
+    ln -s /git/voip_patrol/voice_ref_files /voice_ref_files && \
+    mkdir -p /xml && \
+    mkdir -p /output && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+VOLUME [ "/xml", "/output", "/voice_ref_files" ]
+
+COPY entrypoint.vp.sh /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]

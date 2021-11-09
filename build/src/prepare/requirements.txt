@@ -1,0 +1,4 @@
+Jinja2==3.0.2
+MarkupSafe==2.0.1
+PyYAML==6.0
+pathlib==1.0.1

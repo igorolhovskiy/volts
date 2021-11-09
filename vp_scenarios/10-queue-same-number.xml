@@ -1,0 +1,47 @@
+<!-- Register with 90510, make a call to team 90510, wher 90510 is the only member
+Make sure that teams could hold endpoints with same numbers as teams itself -->
+<config>
+    <actions>
+        <action type="codec" disable="all"/>
+        <action type="codec" enable="pcma" priority="250"/>
+        <action type="codec" enable="pcmu" priority="249"/>
+        <action type="codec" enable="opus" priority="248"/>
+        <action type="register" label="Register {{ a.90510.label }}"
+            transport="{{ a.90510.transport }}"
+            account="{{ a.90510.label }}"
+            username="{{ a.90510.username }}"
+            password="{{ a.90510.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a.90510.srtp }}"
+        />
+        <action type="wait" complete="true">
+        <action type="call" label="Call to 90510"
+            transport="{{ a.90001.transport }}"
+            expected_cause_code="200"
+            caller="{{ a.90001.label }}@{{ c.domain }}"
+            callee="90510@{{ c.domain }}"
+            from="sip:{{ a.90001.label }}@{{ c.domain }}"
+            to_uri="90510@{{ c.domain }}"
+            max_duration="20" hangup="10"
+            username="{{ a.90001.username }}"
+            password="{{ a.90001.password }}"
+            realm="{{ c.domain }}"
+            rtp_stats="true"
+            max_ring_duration="15"
+            srtp="{{ a.90001.srtp }}"
+            play="{{ c.play_file }}"
+        />
+        <action type="accept" label="Receive call on team member {{ a.90510.label }}"
+            account="{{ a.90510.label }}"
+            call_count="1"
+            hangup="10"
+            code="200" reason="OK"
+            transport="{{ a.90510.transport }}"
+            srtp="{{ a.90510.srtp }}"
+            play="{{ c.play_file }}"
+        />
+        <action type="wait" complete="true" ms="20000"/>
+    </actions>
+</config>

@@ -1,0 +1,69 @@
+<!-- Register 90002, 90502 and make a call to 91511 which is forwarded to team 90502
+Team 90502 has a member 90002
+Make sure we receive a call on 90002, but not endpoint 90502 -->
+<config>
+    <actions>
+        <action type="codec" disable="all"/>
+        <action type="codec" enable="pcma" priority="250"/>
+        <action type="codec" enable="pcmu" priority="249"/>
+        <action type="codec" enable="opus" priority="248"/>
+        <action type="register" label="Register {{ a.90002.label }}"
+            transport="{{ a.90002.transport }}"
+            account="{{ a.90002.label }}"
+            username="{{ a.90002.username }}"
+            password="{{ a.90002.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a.90002.srtp }}"
+        />
+        <action type="register" label="Register {{ a.90502.label }}"
+            transport="{{ a.90502.transport }}"
+            account="{{ a.90502.label }}"
+            username="{{ a.90502.username }}"
+            password="{{ a.90502.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a.90502.srtp }}"
+        />
+        <action type="wait" complete="true"/>
+        <action type="call" label="Call from {{ a.90001.label }} to 91511"
+            transport="{{ a.90001.transport }}"
+            expected_cause_code="200"
+            caller="{{ a.90001.label }}@{{ c.domain }}"
+            callee="91511@{{ c.domain }}"
+            from="sip:{{ a.90001.label }}@{{ c.domain }}"
+            to_uri="91511@{{ c.domain }}"
+            max_duration="20" hangup="10"
+            username="{{ a.90001.username }}"
+            password="{{ a.90001.password }}"
+            realm="{{ c.domain }}"
+            rtp_stats="true"
+            max_ring_duration="15"
+            srtp="{{ a.90001.srtp }}"
+            play="{{ c.play_file }}"
+        />
+        <!-- this call should not happen -->
+        <action type="accept" label="Receive call on {{ a.90502.label }}"
+            account="{{ a.90502.label }}"
+            hangup="10"
+            code="200" reason="OK"
+            transport="{{ a.90502.transport }}"
+            srtp="{{ a.90502.srtp }}"
+            fail_on_accept="true"
+            expected_cause_code="487"
+        />
+        <!-- this call is OK -->
+        <action type="accept" label="Receive call on team member {{ a.90002.label }}"
+            account="{{ a.90002.label }}"
+            call_count="1"
+            hangup="10"
+            code="200" reason="OK"
+            transport="{{ a.90002.transport }}"
+            play="{{ c.play_file }}"
+            srtp="{{ a.90002.srtp }}"
+        />
+        <action type="wait" complete="true" ms="20000"/>
+    </actions>
+</config>

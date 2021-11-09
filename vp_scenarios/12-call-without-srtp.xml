@@ -1,0 +1,26 @@
+<!-- Call without forced SRTP. Should receive 488 -->
+<config>
+    <actions>
+        <action type="codec" disable="all"/>
+        <action type="codec" enable="pcma" priority="250"/>
+        <action type="codec" enable="pcmu" priority="249"/>
+        <action type="codec" enable="opus" priority="248"/>
+        <action type="call" label="Call {{ a.90001.label }} -> 11111"
+            transport="tls"
+            expected_cause_code="488"
+            caller="{{ a.90001.label }}@{{ c.domain }}"
+            callee="11111@{{ c.domain }}"
+            from="sip:{{ a.90001.label }}@{{ c.domain }}"
+            to_uri="11111@{{ c.domain }}"
+            max_duration="20" hangup="10"
+            username="{{ a.90001.username }}"
+            password="{{ a.90001.password }}"
+            realm="{{ c.domain }}"
+            rtp_stats="true"
+            max_ring_duration="15"
+            srtp="none"
+            play="{{ c.play_file }}"
+        />
+        <action type="wait" complete="true" ms="30000"/>
+    </actions>
+</config>

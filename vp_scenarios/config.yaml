@@ -1,0 +1,33 @@
+global:
+  domain:     '<SOME_DOMAIN>'
+  transport:  'tls'
+  srtp:       'dtls,sdes,force'
+  play_file:  '/voice_ref_files/8000_12s.wav'
+accounts:
+  '88881':
+    username: '88881'
+    password: 'SuperSecretPass'
+  '88882':
+    username: '88882'
+    password: 'SuperSecretPass'
+  '88883':
+    username: '88883'
+    password: 'SuperSecretPass'
+  '90001':
+    username: '90001'
+    password: 'SuperSecretPass'
+  '90002':
+    username: '90002'
+    password: 'SuperSecretPass'
+  '90003':
+    username: '90003'
+    password: 'SuperSecretPass'
+  '90510':
+    username: '90510'
+    password: 'SuperSecretPass'
+  '90502':
+    username: '90502'
+    password: 'SuperSecretPass'
+  '92002':
+    username: '92002'
+    password: 'SuperSecretPass'
