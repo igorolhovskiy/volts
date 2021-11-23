@@ -56,14 +56,17 @@ global:
   play_file:  '/voice_ref_files/8000_12s.wav'
 accounts:
   '88881':
-    username: '88881'
-    password: 'SuperSecretPass1'
+    username:       '88881'
+    auth_username:  '88881-1'
+    password:       'SuperSecretPass1'
   '88882':
-    username: '88882'
-    password: 'SuperSecretPass1'
+    username:       '88882'
+    auth_username:  '88882-67345'
+    password:       'SuperSecretPass2'
   '90001':
-    username: '90001'
-    password: 'SuperSecretPass2'
+    username:       '90001'
+    auth_username:  '90001'
+    password:       'SuperSecretPass3'
 ```
 #### Make a successful register
 ```xml
@@ -73,6 +76,7 @@ accounts:
             transport="{{ a.88881.transport }}"
             account="{{ a.88881.label }}"
             username="{{ a.88881.username }}"
+            auth_username="{{ a.88881.auth_username }}"
             password="{{ a.88881.password }}"
             registrar="{{ c.domain }}"
             realm="{{ a.88881.domain }}"
@@ -90,6 +94,7 @@ accounts:
             transport="{{ a.88881.transport }}"
             account="{{ a.88881.label }}"
             username="{{ a.88881.username }}"
+            auth_username="{{ a.88881.auth_username }}"
             password="{{ a.88881.password }}"
             registrar="{{ c.domain }}"
             realm="{{ a.88881.domain }}"
@@ -102,7 +107,8 @@ accounts:
 
 #### Register with 1 account and make a call
 from `90001` to `88881`. Max wait time to answer - 15 sec, duration of connected call - 10 sec.</br>
-Point, we don't register account `90001` here, as we're not receiving a calls on it, just need to provide credentials on INVITE.
+Point, we don't register account `90001` here, as we're not receiving a calls on it, just need to provide credentials on INVITE.</br>
+Also trick, `match_account` in `accept` perfectly links with `account` in `register`.
 ```xml
 <config>
     <actions>
@@ -114,6 +120,7 @@ Point, we don't register account `90001` here, as we're not receiving a calls on
             transport="{{ a.88881.transport }}"
             account="{{ a.88881.label }}"
             username="{{ a.88881.username }}"
+            auth_username="{{ a.88881.auth_username }}"
             password="{{ a.88881.password }}"
             registrar="{{ c.domain }}"
             realm="{{ c.domain }}"
@@ -123,7 +130,7 @@ Point, we don't register account `90001` here, as we're not receiving a calls on
         <action type="wait" complete="true" ms="2000"/>
         <action type="accept" label="Receive call on {{ a.88881.label }}"
             call_count="1"
-            account="{{ a.88881.label }}"
+            match_account="{{ a.88881.label }}"
             hangup="10"
             code="200" reason="OK"
             transport="{{ a.88881.transport }}"
@@ -138,7 +145,7 @@ Point, we don't register account `90001` here, as we're not receiving a calls on
             from="sip:{{ a.90001.label }}@{{ c.domain }}"
             to_uri="{{ a.88881.label }}@{{ c.domain }}"
             max_duration="20" hangup="10"
-            username="{{ a.90001.username }}"
+            auth_username="{{ a.90001.username }}"
             password="{{ a.90001.password }}"
             realm="{{ c.domain }}"
             rtp_stats="true"
@@ -163,6 +170,7 @@ and call from third one, not answer on 1st and make sure we receive call on seco
             transport="{{ a.88881.transport }}"
             account="{{ a.88881.label }}"
             username="{{ a.88881.username }}"
+            auth_username="{{ a.88881.auth_username }}"
             password="{{ a.88881.password }}"
             registrar="{{ c.domain }}"
             realm="{{ c.domain }}"
@@ -173,6 +181,7 @@ and call from third one, not answer on 1st and make sure we receive call on seco
             transport="{{ a.88882.transport }}"
             account="{{ a.88882.label }}"
             username="{{ a.88882.username }}"
+            auth_username="{{ a.88882.auth_username }}"
             password="{{ a.88882.password }}"
             registrar="{{ c.domain }}"
             realm="{{ c.domain }}"
@@ -188,7 +197,7 @@ and call from third one, not answer on 1st and make sure we receive call on seco
             from="sip:{{ a.90001.label }}@{{ c.domain }}"
             to_uri="88881@{{ c.domain }}"
             max_duration="20" hangup="10"
-            username="{{ a.90001.username }}"
+            auth_username="{{ a.90001.username }}"
             password="{{ a.90001.password }}"
             realm="{{ c.domain }}"
             rtp_stats="true"
@@ -197,7 +206,7 @@ and call from third one, not answer on 1st and make sure we receive call on seco
             play="{{ c.play_file }}"
         />
         <action type="accept" label="Receive call on {{ a.88881.label }}"
-            account="{{ a.88881.label }}"
+            match_account="{{ a.88881.label }}"
             call_count="1"
             hangup="10"
             ring_duration="30"
@@ -206,7 +215,7 @@ and call from third one, not answer on 1st and make sure we receive call on seco
             srtp="{{ a.88881.srtp }}"
         />
         <action type="accept" label="Receive call on {{ a.88882.label }}"
-            account="{{ a.88882.label }}"
+            match_account="{{ a.88882.label }}"
             call_count="1"
             hangup="10"
             code="200" reason="OK"

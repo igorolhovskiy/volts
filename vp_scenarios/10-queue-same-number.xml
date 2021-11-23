@@ -1,15 +1,16 @@
-<!-- Register with 90510, make a call to team 90510, wher 90510 is the only member
-Make sure that teams could hold endpoints with same numbers as teams itself -->
+<!-- Register with 90510, make a call to queue 90510, wher 90510 is the only member
+Make sure that queue could hold endpoints with same numbers as queue itself -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
         <action type="codec" enable="pcma" priority="250"/>
         <action type="codec" enable="pcmu" priority="249"/>
         <action type="codec" enable="opus" priority="248"/>
-        <action type="register" label="Register {{ a.90510.label }}"
+        <action type="register" label="Register {{ a.90510.username }}"
             transport="{{ a.90510.transport }}"
-            account="{{ a.90510.label }}"
-            username="{{ a.90510.username }}"
+            account="{{ a.90510.username }}"
+            username="{{ a.90510.label }}"
+            auth_username="{{ a.90510.username }}"
             password="{{ a.90510.password }}"
             registrar="{{ c.domain }}"
             realm="{{ c.domain }}"
@@ -25,7 +26,7 @@ Make sure that teams could hold endpoints with same numbers as teams itself -->
             from="sip:{{ a.90001.label }}@{{ c.domain }}"
             to_uri="90510@{{ c.domain }}"
             max_duration="20" hangup="10"
-            username="{{ a.90001.username }}"
+            auth_username="{{ a.90001.username }}"
             password="{{ a.90001.password }}"
             realm="{{ c.domain }}"
             rtp_stats="true"
@@ -34,7 +35,7 @@ Make sure that teams could hold endpoints with same numbers as teams itself -->
             play="{{ c.play_file }}"
         />
         <action type="accept" label="Receive call on team member {{ a.90510.label }}"
-            account="{{ a.90510.label }}"
+            match_account="{{ a.90510.username }}"
             call_count="1"
             hangup="10"
             code="200" reason="OK"

@@ -4,10 +4,11 @@
         <action type="codec" disable="all"/>
         <action type="codec" enable="pcma" priority="250"/>
         <action type="codec" enable="pcmu" priority="249"/>
-        <action type="register" label="Register {{ a.88881.label }}"
+        <action type="register" label="Register {{ a.88881.username }}"
             transport="{{ a.88881.transport }}"
-            account="{{ a.88881.label }}"
-            username="{{ a.88881.username }}"
+            account="{{ a.88881.username }}"
+            username="{{ a.88881.label }}"
+            auth_username="{{ a.88881.username }}"
             password="{{ a.88881.password }}"
             registrar="{{ c.domain }}"
             realm="{{ c.domain }}"
@@ -17,7 +18,7 @@
         <action type="wait" complete="true" ms="2000"/>
         <action type="accept" label="Receive all calls"
             call_count="1"
-            account="default"
+            match_account="default"
             hangup="10"
             code="200" reason="OK"
             transport="{{ c.transport }}"
@@ -33,7 +34,7 @@
             from="sip:{{ a.88882.label }}@{{ c.domain }}"
             to_uri="##88881@{{ c.domain }}"
             max_duration="20" hangup="10"
-            username="{{ a.88882.username }}"
+            auth_username="{{ a.88882.username }}"
             password="{{ a.88882.password }}"
             realm="{{ c.domain }}"
             rtp_stats="true"

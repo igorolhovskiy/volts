@@ -12,7 +12,7 @@
             from="sip:{{ a.88881.label }}@{{ c.domain }}"
             to_uri="11111@{{ c.domain }}"
             max_duration="20" hangup="10"
-            username="{{ a.88881.username }}"
+            auth_username="{{ a.88881.username }}"
             password="{{ a.88881.password }}"
             realm="{{ c.domain }}"
             play="{{ c.play_file }}"

@@ -19,6 +19,10 @@ accounts:
   '90002':
     username: '90002'
     password: 'SuperSecretPass'
+  '90002-456a7f':
+    id:       '90002'
+    username: '90002-456a7f'
+    password: 'SuperSecretPass'
   '90003':
     username: '90003'
     password: 'SuperSecretPass'

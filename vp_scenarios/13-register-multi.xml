@@ -1,0 +1,28 @@
+<!-- Register 2 accounts on same AOR -->
+<config>
+    <actions>
+        <action type="register" label="Register {{ a.90002.username }}"
+            transport="{{ a.90002.transport }}"
+            account="{{ a.90002.username }}"
+            username="{{ a.90002.label }}"
+            auth_username="{{ a.90002.username }}"
+            password="{{ a.90002.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a.90002.srtp }}"
+        />
+        <action type="register" label="Register {{ a['90002-456a7f'].username }}"
+            transport="{{ a['90002-456a7f'].transport }}"
+            account="{{ a['90002-456a7f'].username }}"
+            username="{{ a['90002-456a7f'].id }}"
+            auth_username="{{ a['90002-456a7f'].username }}"
+            password="{{ a['90002-456a7f'].password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a['90002-456a7f'].srtp }}"
+        />
+        <action type="wait" complete="true" ms="2000"/>
+    </actions>
+</config>
