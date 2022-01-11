@@ -158,7 +158,8 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
 </config>
 ```
 #### Register with 2 accounts
-and call from third one, not answer on 1st and make sure we receive call on second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`
+and call from third one, not answer on 1st and make sure we receive call on second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
+Also make sure, that on `88882` we got the call from `90001` (based on CallerID).
 ```xml
 <config>
     <actions>
@@ -221,8 +222,9 @@ and call from third one, not answer on 1st and make sure we receive call on seco
             code="200" reason="OK"
             transport="{{ a.88882.transport }}"
             srtp="{{ a.88882.srtp }}"
-            play="{{ c.play_file }}"
-        />
+            play="{{ c.play_file }}">
+            <check-header name="From" regex="^.*<sip:{{ a.90001.label }}@example\.com>.*$"/>
+        </action>
         <action type="wait" complete="true" ms="20000"/>
     </actions>
 </config>
