@@ -292,6 +292,8 @@ try:
 
     with open(report_file_path) as report_file:
         process_error, report_data = process_jsonl_file(report_file)
+        if process_error:
+            raise Exception(process_error)
 
     tests_list = get_tests_list()
     test_results = build_test_results(report_data)
