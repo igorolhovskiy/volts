@@ -1,0 +1,24 @@
+<!-- Call echo service and name sure receive an answer -->
+<config>
+    <actions>
+        <action type="codec" disable="all"/>
+        <action type="codec" enable="pcma" priority="250"/>
+        <action type="codec" enable="pcmu" priority="249"/>
+        <action type="call" label="Call to 11111*- (failed)"
+            transport="{{ a.88881.transport }}"
+            expected_cause_code="488"
+            caller="{{ a.88881.label }}@{{ c.domain }}"
+            callee="11111*-@{{ a.88881.domain }}"
+            from="sip:{{ a.88881.label }}@{{ c.domain }}"
+            to_uri="11111@{{ c.domain }}"
+            max_duration="20" hangup="10"
+            auth_username="{{ a.88881.username }}"
+            password="{{ a.88881.password }}"
+            realm="{{ c.domain }}"
+            play="{{ c.play_file }}"
+            rtp_stats="true"
+            srtp="{{ a.88881.srtp }}"
+        />
+    <action type="wait" complete="true" ms="3000"/>
+    </actions>
+</config>

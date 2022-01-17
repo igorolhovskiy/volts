@@ -1,0 +1,48 @@
+<!-- Register with 90002 and receive a call from 90001 -->
+<config>
+    <actions>
+        <action type="codec" disable="all"/>
+        <action type="codec" enable="pcma" priority="250"/>
+        <action type="codec" enable="pcmu" priority="249"/>
+        <action type="codec" enable="opus" priority="248"/>
+        <action type="register" label="Register {{ a.90002.username }}"
+            transport="{{ a.90002.transport }}"
+            account="{{ a.90002.username }}"
+            username="{{ a.90002.label }}"
+            auth_username="{{ a.90002.username }}"
+            password="{{ a.90002.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a.90002.srtp }}"
+        />
+        <action type="wait" complete="true" ms="2000"/>
+        <action type="accept" label="Do not receive call on {{ a.90002.username }}"
+            call_count="1"
+            match_account="{{ a.90002.username }}"
+            hangup="10"
+            code="200" reason="OK"
+            transport="{{ a.90002.transport }}"
+            srtp="{{ a.90002.srtp }}"
+            play="{{ c.play_file }}"
+            fail_on_accept="true"
+        />
+        <action type="call" label="Call {{ a.90001.label }} -> {{ a.90002.label }}"
+            transport="tls"
+            expected_cause_code="200"
+            caller="{{ a.90001.label }}@{{ c.domain }}"
+            callee="{{ a.90002.label }},123,AF@{{ c.domain }}"
+            from="sip:{{ a.90001.label }}@{{ c.domain }}"
+            to_uri="{{ a.90002.label }}@{{ c.domain }}"
+            max_duration="20" hangup="10"
+            auth_username="{{ a.90001.username }}"
+            password="{{ a.90001.password }}"
+            realm="{{ c.domain }}"
+            rtp_stats="true"
+            max_ring_duration="15"
+            srtp="{{ a.90001.srtp }}"
+            play="{{ c.play_file }}"
+        />
+        <action type="wait" complete="true" ms="30000"/>
+    </actions>
+</config>

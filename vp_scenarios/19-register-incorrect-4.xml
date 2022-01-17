@@ -1,0 +1,16 @@
+<!-- Test simple register -->
+<config>
+    <actions>
+        <action type="register" label="Register {{ a.88881.username }}"
+            transport="{{ a.88881.transport }}"
+            account="{{ a.88881.username }}"
+            username="{{ a.88881.username }}"
+            auth_username="{{ a.88881.username }}"
+            password="{{ a.88881.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ a.88881.domain }}"
+            expected_cause_code="488"
+        />
+        <action type="wait" complete="true" ms="2000"/>
+    </actions>
+</config>
