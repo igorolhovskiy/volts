@@ -192,18 +192,19 @@ def align_test_results_with_test_list(test_results, test_list):
 def filter_results_default(test_results):
 
     printed_results = {}
-    success = True
+    error = None
 
     for scenario_name, scenario_details in test_results.items():
         if scenario_details.get("status") == "PASS":
             continue
-        success = False
         printed_results[scenario_name] = {}
         printed_results[scenario_name]["status"] = scenario_details.get("status")
         printed_results[scenario_name]["status_text"] = scenario_details.get("status_text")
         printed_results[scenario_name]["start_time"] = scenario_details.get("start_time")
         printed_results[scenario_name]["end_time"] = scenario_details.get("end_time")
         printed_results[scenario_name]["task_counter"] = scenario_details.get("counter")
+
+        error = [scenario_name] if error is None else error.append[scenario_name]
 
         failed_tests = {}
 
@@ -216,7 +217,7 @@ def filter_results_default(test_results):
         if len(failed_tests) > 1:
             printed_results[scenario_name]["failed_tests"] = failed_tests
 
-    return success, printed_results
+    return error, printed_results
 
 def print_table(print_results):
     tbl = PrettyTable()
@@ -236,16 +237,12 @@ def print_table(print_results):
     print(tbl)
 
 def print_results_json_full(test_results):
-    success = True
-    for scenario_details in test_results.values():
-        if scenario_details.get("status") == "FAIL":
-            success = False
-            break
+    error, printed_results = filter_results_default(test_results)
 
-    print(json.dumps(test_results, sort_keys=True, indent=4))
+    print(json.dumps(printed_results, sort_keys=True, indent=4))
 
-    if not success:
-        print("Tests are failed!")
+    if error is not None:
+        print("Tests {} are failed!".format(error))
         return
 
     print("Tests passed OK!")
@@ -253,33 +250,33 @@ def print_results_json_full(test_results):
 
 def print_results_table_default(test_results):
 
-    success, printed_results = filter_results_default(test_results)
+    error, printed_results = filter_results_default(test_results)
 
-    if not success:
+    if error is not None:
         print_table(printed_results)
-        print("Tests are failed!")
+        print("Tests {} are failed!".format(error))
         return
 
     print("Tests passed OK!")
 
 def print_results_json_default(test_results):
 
-    success, printed_results = filter_results_default(test_results)
+    error, printed_results = filter_results_default(test_results)
 
-    if not success:
+    if error is not None:
         print(json.dumps(printed_results, sort_keys=True, indent=4))
-        print("Tests are failed!")
+        print("Tests {} are failed!".format(error))
         return
 
     print("Tests passed OK!")
 
 def print_results_table_full(test_results):
-    success, printed_results = filter_results_default(test_results)
+    error, printed_results = filter_results_default(test_results)
 
     print_table(test_results)
 
-    if not success:
-        print("Tests are failed!")
+    if error is not None:
+        print("Tests {} are failed!".format(error))
         return
 
     print("Tests passed OK!")
