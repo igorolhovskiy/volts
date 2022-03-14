@@ -48,7 +48,7 @@ We suppose to configure 2 parts here. First, and most complex are
 Values for templates are taken from `vp_scenarios/config.yaml`</br>
 One thing to mention here, that vars from `global` section transforms to `c.` and from `accounts` to `a.` in templates for shorter notation.</br>
 Also all settings from `global` section are inherited to `accounts` section automatically, unless they are defined there explicitly.</br>
-To get most of it, please refer to [`voip_patrol`](https://github.com/https://github.com/igorolhovskiy/voip_patrol/voip_patrol) config, but here just some more basic examples.</br></br>
+To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) config, but here just some more basic examples.</br></br>
 `config.yaml`
 ```yaml
 global:
