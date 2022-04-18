@@ -18,7 +18,8 @@ Suite consists of 3 parts, that are running sequentially
 ## Building
 
 Suite is designed to run locally from your Linux PC or Mac. And of course, `docker` should be installed. It's up to you.</br>
-To build, just run `./build.sh`. It would build 3 `docker` images and tag em accordingly.
+To build, just run `./build.sh`. It would build 3 `docker` images and tag em accordingly.</br>
+In a case if `voip_patrol` is updated, you need to rebuild it's container again, you can do it with `./build.sh -r`
 
 ## Running
 
@@ -84,7 +85,6 @@ accounts:
             auth_username="{{ a.88881.auth_username }}"
             password="{{ a.88881.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ a.88881.domain }}"
             <!-- We're expecting get 200 code here, so REGISTER is successfull -->
             expected_cause_code="200"
         />
@@ -112,7 +112,7 @@ accounts:
     </actions>
 </config>
 ```
-
+Here we specify optional parameter `realm`, that can be used for additional security check.
 #### Simple call scenario
 Register with 1 account and make a call from `90001` to `88881`. Max wait time to answer - 15 sec, duration of connected call - 10 sec.</br>
 Point, we don't register account `90001` here, as we're not receiving a calls on it, just need to provide credentials on INVITE.</br>
@@ -165,7 +165,6 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
             <!-- We're specifying all auth data here for INVITE -->
             auth_username="{{ a.90001.username }}"
             password="{{ a.90001.password }}"
-            realm="{{ c.domain }}"
             rtp_stats="true"
             max_ring_duration="15"
             srtp="{{ a.90001.srtp }}"
