@@ -6,7 +6,7 @@ def process_jsonl_file(file):
     """
     Function to process output of voip_patrol, which is JSONL (https://jsonlines.org/) file
     """
-    processed_data = []
+    processed_data = list()
     error = None
 
     for line in file:
@@ -22,12 +22,13 @@ def process_jsonl_file(file):
 def get_tests_list():
     """
     Function to get all tests lists from all tests directory.
-    List of tests = list of files
+    List of tests = list of directories
     """
-    test_list = []
-    for filename in os.listdir('/opt/scenarios'):
-        if filename.endswith('.xml'):
-            test_list.append(_normalize_test_name(filename))
+    test_list = list()
+    for scenario_name in os.listdir('/opt/scenarios'):
+        scenario_folder_path = os.path.join('/opt/scenarios', scenario_name)
+        if os.path.isdir(scenario_folder_path):
+            test_list.append(_normalize_test_name(scenario_name))
 
     return test_list
 
@@ -36,8 +37,13 @@ def _normalize_test_name(name):
     Function to transform "/xml/<test_name>.xml" -> "<test_name>"
     """
     normalized_name = name.split("/")[-1]
+
+    if normalized_name == 'voip_patrol.xml':
+        normalized_name = name.split("/")[-2]
+
     if normalized_name.endswith('.xml'):
         return normalized_name[:-4]
+
     return normalized_name
 
 def build_test_results(report_data):
@@ -65,7 +71,7 @@ def build_test_results(report_data):
 
             current_test_scenario_info = test_entity.get("scenario")
 
-            current_test = current_test_scenario_info.get("name") or "orphaned"
+            current_test = current_test_scenario_info.get("name", "orphaned")
             current_test = _normalize_test_name(current_test)
 
             if current_test_scenario_info.get("state") == "start":
@@ -99,16 +105,16 @@ def build_test_results(report_data):
                 if current_test not in test_results:
                     test_results[current_test] = {}
                     test_results[current_test]["status"] = "FAIL"
-                    test_results[current_test]["status_text"] = "Bug 1 in report script, please fix"
+                    test_results[current_test]["status_text"] = "Bug 1 in the report script, please fix"
 
                     current_test = "orphaned"
                     continue
 
-                scenario_total_tasks = current_test_scenario_info.get("total tasks") or "NA"
-                scenario_completed_tasks = current_test_scenario_info.get("completed tasks") or "NA"
+                scenario_total_tasks = current_test_scenario_info.get("total tasks", "NA")
+                scenario_completed_tasks = current_test_scenario_info.get("completed tasks", "NA")
 
                 test_results[current_test]["end_time"] = current_test_scenario_info.get("time")
-                test_results[current_test]["status"] = current_test_scenario_info.get("result") or "FAIL"
+                test_results[current_test]["status"] = current_test_scenario_info.get("result", "FAIL")
                 test_results[current_test]["counter"] = "{}/{}".format(scenario_completed_tasks, scenario_total_tasks)
 
                 # Status PASS at this moment means only that all tests are completed
@@ -149,7 +155,7 @@ def build_test_results(report_data):
                 test_results[current_test] = {}
 
             test_results[current_test]["status"] = "FAIL"
-            test_results[current_test]["status_text"] = "Problem with test info"
+            test_results[current_test]["status_text"] = "Problem with the test info"
             continue
 
         test_number = next(iter(test_entity)) # Get first and only key in test_entity
@@ -173,6 +179,9 @@ def build_test_results(report_data):
 
 
 def align_test_results_with_test_list(test_results, test_list):
+    '''
+    Make sure report have all tests results, that was in initial test list
+    '''
     for actual_test in test_list:
         if actual_test in test_results:
             continue
@@ -190,11 +199,16 @@ def align_test_results_with_test_list(test_results, test_list):
 
 
 def filter_results_default(test_results):
+    '''
+    Find all failed tests
+    '''
 
     printed_results = {}
-    error = None
+    errors = list()
+
 
     for scenario_name, scenario_details in test_results.items():
+        print("Processing {}".format(scenario_name))
         if scenario_details.get("status") == "PASS":
             continue
         printed_results[scenario_name] = {}
@@ -204,10 +218,9 @@ def filter_results_default(test_results):
         printed_results[scenario_name]["end_time"] = scenario_details.get("end_time")
         printed_results[scenario_name]["task_counter"] = scenario_details.get("counter")
 
-        error = [scenario_name] if error is None else error.append[scenario_name]
+        errors.append(scenario_name)
 
         failed_tests = {}
-
         if scenario_details.get("tests"):
             for test_name, test_details in scenario_details["tests"].items():
                 if test_details.get("result") == "PASS":
@@ -217,7 +230,11 @@ def filter_results_default(test_results):
         if len(failed_tests) > 1:
             printed_results[scenario_name]["failed_tests"] = failed_tests
 
-    return error, printed_results
+    status = None
+    if len(errors) > 0:
+        status = errors
+
+    return status, printed_results
 
 def print_table(print_results):
     tbl = PrettyTable()
@@ -230,34 +247,33 @@ def print_table(print_results):
             continue
 
         for test_data in scenario_details.get("tests").values():
-            table_test_name_value = test_data.get("label") + "(" + test_data.get("action") + ")"
             tbl.add_row(["", test_data.get("label"), test_data.get("result"), test_data.get("result_text")])
 
     tbl.align = "r"
     print(tbl)
 
 def print_results_json_full(test_results):
-    error, printed_results = filter_results_default(test_results)
+    failed_scenarios, printed_results = filter_results_default(test_results)
 
     print(json.dumps(printed_results, sort_keys=True, indent=4))
 
-    if error is not None:
-        print("Tests {} are failed!".format(error))
+    if failed_scenarios is not None:
+        print("Scenarios {} are failed!".format(failed_scenarios))
         return
 
-    print("Tests passed OK!")
+    print("All scenarios are OK!")
 
 
 def print_results_table_default(test_results):
 
-    error, printed_results = filter_results_default(test_results)
+    failed_scenarios, printed_results = filter_results_default(test_results)
 
-    if error is not None:
+    if failed_scenarios is not None:
         print_table(printed_results)
-        print("Tests {} are failed!".format(error))
+        print("Scenarios {} are failed!".format(failed_scenarios))
         return
 
-    print("Tests passed OK!")
+    print("All scenarios are OK!")
 
 def print_results_json_default(test_results):
 
@@ -265,40 +281,39 @@ def print_results_json_default(test_results):
 
     if error is not None:
         print(json.dumps(printed_results, sort_keys=True, indent=4))
-        print("Tests {} are failed!".format(error))
+        print("Scenarios {} are failed!".format(error))
         return
 
-    print("Tests passed OK!")
+    print("All scenarios are OK!")
 
 def print_results_table_full(test_results):
-    error, printed_results = filter_results_default(test_results)
+    failed_scenarios, _ = filter_results_default(test_results)
 
     print_table(test_results)
 
-    if error is not None:
-        print("Tests {} are failed!".format(error))
+    if failed_scenarios is not None:
+        print("Scenarios {} are failed!".format(failed_scenarios))
         return
 
-    print("Tests passed OK!")
+    print("All scenarios are OK!")
 
 
 # Main program starts
 try:
-    report_file_name = os.environ.get("REPORT_FILE") or "result.jsonl"
+    report_file_name = os.environ.get("REPORT_FILE", "result.jsonl")
     report_file_path = r'/opt/report/' + report_file_name
 
     with open(report_file_path) as report_file:
         process_error, report_data = process_jsonl_file(report_file)
         if process_error:
-            raise Exception(process_error)
+            raise Exception("Error processing report file: {}".format(process_error))
 
     tests_list = get_tests_list()
     test_results = build_test_results(report_data)
     align_test_results_with_test_list(test_results, tests_list)
 
-    print_style = os.environ.get("REPORT_TYPE") or "json"
+    print_style = os.environ.get("REPORT_TYPE", "json")
     print_style = print_style.lower()
-
     if print_style == "json_full":
         print_results_json_full(test_results)
     elif print_style == "table_full":

@@ -1,26 +1,30 @@
-[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct.svg)](https://stand-with-ukraine.pp.ua)
-
 # VOLTS
 
 **Voip Open Linear Tester Suite**
 
-Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) and [`docker`](https://www.docker.com/)
+Functional tests for CERNphone based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) and [`docker`](https://www.docker.com/)
 
 ## 10'000 ft. view
 
 System is designed to run simple call scenarios, that you usually do with your desk phones.</br>
-Scenarios are run one by one from `vp_scenarios` folder in alphabetical order, which could be considered as a limitation, but also allows you to reuse same accounts in a different set of tests. This stands for `Linear` in the name ;)
+Scenarios are run one by one from `scenarios` folder in alphabetical order, which could be considered as a limitation, but also allows you to reuse same accounts in a different set of tests. This stands for `Linear` in the name ;)
 So, call some destination(s) with one(or more) device(s) and control call arrival on another phone(s).</br>
-This tool would not configure your PBX to provide call flows, it's up to you. It will just make and receive calls, nothing more. *It also will not do transfers at the moment. Sorry*</br></br>
+But wait, there is more. VOLTS also can integrate with your MySQL and/or PostgreSQL databases to write some data there before test and remove it after.</br>
+It will make, receive calls and configure database. *It's not do transfers at the moment. Sorry. I don't need it*</br></br>
 
-Suite consists of 3 parts, that are running sequentially
-1. Preparation - at this part we're transforming templates to real scenarios using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine
-2. Running `voip_patrol` against list of scenarios sequentially. One scenario at a time in alphabetical order.
-3. Report - at this part we're analyzing results of previous step reading and interpreting file obtained at step 2. Printing results in a desired way. Table by default.
+Suite consists of 4 parts, that are running sequentially
+1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [jinja2_time](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
+---
+2. Running database scripts. Usually - put some data inside some routing or subscriber data.
+3. Running `voip_patrol` against scenario.
+4. Again running database scripts. Usually - remove data that had been put at the stage 2.
+---
+5. Report - at this part we're analyzing results of previous step reading and interpreting file obtained running step 3. Printing results in a desired way. Table by default.
+Steps 2-4 are running sequentially against scenarios files prepared at step 1. One at a time.
 ## Building
 
-Suite is designed to run locally from your Linux PC or Mac. And of course, `docker` should be installed. It's up to you.</br>
-To build, just run `./build.sh`. It would build 3 `docker` images and tag em accordingly.</br>
+Suite is designed to run locally from your Linux PC or Mac (maybe). And of course, `docker` should be installed. It's up to you.</br>
+To build, just run `./build.sh`. It would build 4 `docker` images and tag em accordingly.</br>
 In a case if `voip_patrol` is updated, you need to rebuild it's container again, you can do it with `./build.sh -r`
 
 ## Running
@@ -29,17 +33,17 @@ After building, just run
 ```sh
 ./run.sh
 ```
-Simple, isn't it? This will run all scenarios found in `vp_scenarios` folder one by one. To run single scenario, run
+Simple, isn't it? This will run all scenarios found in `scenarios` folder one by one. To run single scenario, run
 ```sh
-./run.sh <scenario_name>.xml
+./run.sh <scenario_name>
 ```
 or
 ```sh
-./run.sh vp_scenarios/<scenario_name>.xml
+./run.sh scenarios/<scenario_name>
 ```
 After running of the suite you can always find a `voip_patrol` presented results in `tmp/output` folder.
 
-But simply run something blindly is boring, so before this best to do some
+But simply run something blindly is boring, so before this, best to do some
 
 ## Configuration
 
@@ -47,11 +51,12 @@ We suppose to configure 2 parts here. First, and most complex are
 
 ### Scenarios
 
-`VOLTS` scenarios are `voip_patrol` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
-Values for templates are taken from `vp_scenarios/config.yaml`</br>
+`VOLTS` scenarios are combined `voip_patrol` and database-controlled scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
+Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to ['jinja2-time'](https://github.com/hackebrot/jinja2-time) documentation.</br>
+Values for templates are taken from `scenarios/config.yaml`</br>
 One thing to mention here, that vars from `global` section transforms to `c.` and from `accounts` to `a.` in templates for shorter notation.</br>
 Also all settings from `global` section are inherited to `accounts` section automatically, unless they are defined there explicitly.</br>
-To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) config, but here just some more basic examples.</br></br>
+To get most of it, please refer to [`voip_patrol`](https://github.com/https://github.com/igorolhovskiy/voip_patrol/voip_patrol) config, but here just some more basic examples.</br></br>
 `config.yaml`
 ```yaml
 global:
@@ -59,6 +64,13 @@ global:
   transport:  'tls'
   srtp:       'dtls,sdes,force'
   play_file:  '/voice_ref_files/8000_12s.wav'
+databases:
+  'kamdb':
+    type:       'mysql'
+    user:       'kamailiorw'
+    password:   'kamailiorwpass'
+    base:       'kamailio'
+    host:       'mykamailiodb.local'
 accounts:
   '88881':
     username:       '88881'
@@ -74,6 +86,7 @@ accounts:
     password:       'SuperSecretPass3'
 ```
 #### Make a successful register
+ * Here we assume that account data is known to our PBX.
 ```xml
 <config>
     <actions>
@@ -87,6 +100,7 @@ accounts:
             auth_username="{{ a.88881.auth_username }}"
             password="{{ a.88881.password }}"
             registrar="{{ c.domain }}"
+            realm="{{ a.88881.domain }}"
             <!-- We're expecting get 200 code here, so REGISTER is successfull -->
             expected_cause_code="200"
         />
@@ -95,26 +109,90 @@ accounts:
     </actions>
 </config>
 ```
-#### Expect fail on register
+* .. but what if we need to add account data to PBX dynamically? Assume, that we have Kamailio as a PBX here.
 ```xml
+<!-- Test simple register -->
 <config>
-    <actions>
-        <action type="register" label="Register {{ a.88881.label }}"
-            transport="{{ a.88881.transport }}"
-            account="{{ a.88881.label }}"
-            username="{{ a.88881.username }}"
-            auth_username="{{ a.88881.auth_username }}"
-            password="{{ a.88881.password }}"
-            registrar="{{ c.domain }}"
-            realm="{{ a.88881.domain }}"
-            <!-- We're expecting get 407 code here, maybe your registrar sending 401 or 403 code. So - adjust it here. -->
-            expected_cause_code="407"
-        />
-        <action type="wait" complete="true" ms="2000"/>
-    </actions>
+    <section type="database">
+        <actions>
+             <!-- "kamdb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below -->
+            <action database="kamdb" stage="pre">
+                <!-- what data are we gonna insert into "subscriber" table? -->
+                <table name="subscriber" type="insert" cleanup_after_test="true">
+                    <field name="username" value="{{ a.88881.username }}"/>
+                    <field name="domain" value="{{ c.domain }}"/>
+                    <field name="password" value="{{ a.88881.password }}"/>
+                </table>
+            </action>
+        </actions>
+    </section>
+    <section type="voip_patrol">
+        <actions>
+            <action type="register" label="Register {{ a.88881.label }}"
+                transport="{{ a.88881.transport }}"
+                Account parameter is more used in receive call on this account later
+                account="{{ a.88881.label }}"
+                <!-- username would be a part of AOR - <sip:username@realm> -->
+                username="{{ a.88881.username }}"
+                <!-- auth_username would be used in WWW-Authorize procedure -->
+                auth_username="{{ a.88881.auth_username }}"
+                password="{{ a.88881.password }}"
+                registrar="{{ c.domain }}"
+                realm="{{ a.88881.domain }}"
+                <!-- We're expecting get 200 code here, so REGISTER is successfull -->
+                expected_cause_code="200"
+            />
+            <!-- Just wait 2 sec for all timeouts -->
+            <action type="wait" complete="true" ms="2000"/>
+        </actions>
+    </section>
 </config>
 ```
-Here we specify optional parameter `realm`, that can be used for additional security check.
+Database config is also done in XML. We have 2 stages of database scripts.
+* `pre` - Lauched before running `voip_patrol`. Usually stage to put some accounts data, routing, etc
+* `post` - Obviously, running after `voip_patrol`. For cleanup data inserted in `pre` stage.
+</br>
+
+So, inside `database` action you specify tables you're working with. Each `table` secton have 4 attributes.
+
+* `name` - actually name of table we're working with
+* `type` - could be `insert`, `replace` and `delete`. Forming actually `INSERT`, `REPLACE` and `DELETE` SQL statements for database.
+* `ignore_on_error` - optional. Em.. ignore errors on preformed actions and continue no matter what. By default container will stop working on first error encountered.
+* `cleanup_after_test` - optional. Allows you not to write explicit `post` stage for your `insert` types. Will automatically form `delete` type on `post` stage for all `insert` (not `replace`) that were declared on `pre` stage.
+#### Expect fail on register
+We're deleting data from database and restoring it afterwards.
+```xml
+<config>
+    <section type="database">
+        <actions>
+            <action database="kamdb" stage="pre">
+                <table name="subscriber" type="delete" cleanup_after_test="true">
+                    <field name="username" value="{{ a.88881.username }}"/>
+                    <field name="domain" value="{{ c.domain }}"/>
+                    <field name="password" value="{{ a.88881.password }}"/>
+                </table>
+            </action>
+        </actions>
+    </section>
+    <section type="voip_patrol">
+        <actions>
+            <action type="register" label="Register {{ a.88881.label }}"
+                transport="{{ a.88881.transport }}"
+                account="{{ a.88881.label }}"
+                username="{{ a.88881.username }}"
+                auth_username="{{ a.88881.auth_username }}"
+                password="{{ a.88881.password }}"
+                registrar="{{ c.domain }}"
+                realm="{{ a.88881.domain }}"
+                <!-- We're expecting get 407 code here, maybe your registrar sending 401 or 403 code. So - adjust it here. -->
+                expected_cause_code="407"
+            />
+            <action type="wait" complete="true" ms="2000"/>
+        </actions>
+    /section>
+</config>
+```
+
 #### Simple call scenario
 Register with 1 account and make a call from `90001` to `88881`. Max wait time to answer - 15 sec, duration of connected call - 10 sec.</br>
 Point, we don't register account `90001` here, as we're not receiving a calls on it, just need to provide credentials on INVITE.</br>
@@ -167,6 +245,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
             <!-- We're specifying all auth data here for INVITE -->
             auth_username="{{ a.90001.username }}"
             password="{{ a.90001.password }}"
+            realm="{{ c.domain }}"
             rtp_stats="true"
             max_ring_duration="15"
             srtp="{{ a.90001.srtp }}"
@@ -245,10 +324,152 @@ Also make sure, that on `88882` we got the call from `90001` (based on CallerID)
             srtp="{{ a.88882.srtp }}"
             play="{{ c.play_file }}">
             <!-- Check that From header matching what we need. This way we can control CallerID. Adjust domain (and whole regex) accordingly -->
-            <check-header name="From" regex="^.*<sip:{{ a.90001.label }}@example\.com>.*$"/>
+            <check-header name="From" regex="^.*sip:{{ a.90001.label }}@example\.com>.*$"/>
         </action>
         <action type="wait" complete="true" ms="20000"/>
     </actions>
+</config>
+```
+
+#### Advanced call scenario - 2. Now with databases.
+Schema - Kamailio subscriber and than we have Asterisk behind as PBX.
+
+`config.yaml`
+```yaml
+global:
+  domain:           '<SOME_DOMAIN>'
+  transport:        'tls'
+  srtp:             'dtls,sdes,force'
+  play_file:        '/voice_ref_files/8000_2m30.wav'
+  asterisk_context: 'default'
+databases:
+  'kamdb':
+    type:       'mysql'
+    user:       'kamailiorw'
+    password:   'kamailiorwpass'
+    base:       'kamailio'
+    host:       'mykamailiodb.local'
+  'astdb':
+    type:       'pgsql'
+    user:       'asteriskrw'
+    password:   'asteriskrwpass'
+    base:       'asterisk'
+    host:       'myasteriskdb.local'
+accounts:
+  '90011':
+    username: '90011'
+    password: 'SuperSecretPass1'
+    ha1:      'SuperSecretHA1'
+  '90012':
+    username: '90012'
+    password: 'SuperSecretPass2'
+    ha1:      'SuperSecretHA2'
+```
+And now we need to populate all databases and make a call!
+```xml
+<!-- Register with 90012 and receive a call from 90011 -->
+<config>
+    <section type="database">
+        <actions>
+        <!-- add subscribers to Kamailio -->
+            <action database="kamdb" stage="pre">
+                <table name="subscriber" type="insert"  cleanup_after_test="true">
+                    <field name="username" value="{{ a.90011.username }}"/>
+                    <field name="domain" value="{{ c.domain }}"/>
+                    <field name="ha1" value="{{ a.90011.ha1 }}"/>
+                    <!-- here password due to ha1 is useless, so we can put some data based on jinja2_time.TimeExtension (https://github.com/hackebrot/jinja2-time) -->
+                    <field name="password" value="{% now 'local' %}"/>
+                </table>
+                <table name="subscriber" type="insert"  cleanup_after_test="true">
+                    <field name="username" value="{{ a.90012.username }}"/>
+                    <field name="domain" value="{{ c.domain }}"/>
+                    <field name="ha1" value="{{ a.90012.ha1 }}"/>
+                    <field name="password" value="{% now 'local' + 'days=1', '%D' %}"/>
+                </table>
+            </action>
+            <!-- add endpoints and aors to Asterisk -->
+            <action database="astdb" stage="pre">
+                <table name="ps_endpoints" type="insert"  cleanup_after_test="true">
+                    <field name="id" value="{{ a.90011.label }}"/>
+                    <field name="transport" value="transport-udp"/>
+                    <field name="aors" value="{{ a.90011.label }}"/>
+                    <field name="context" value="{{ c.asterisk_context }}"/>
+                    <field name="disallow" value="all"/>
+                    <field name="allow" value="!all,opus,alaw"/>
+                    <field name="direct_media" value="no"/>
+                    <field name="ice_support" value="no"/>
+                    <field name="rtp_timeout" value="3600"/>
+                </table>
+                <table name="ps_aors" type="insert"  cleanup_after_test="true">
+                    <field name="id" value="{{ a.90011.label }}"/>
+                    <field name="contact" value="sip:{{ a.90011.label }}@{{ c.domain }}:5060"/>
+                </table>
+                <table name="ps_endpoints" type="insert"  cleanup_after_test="true">
+                    <field name="id" value="{{ a.90012.label }}"/>
+                    <field name="transport" value="transport-udp"/>
+                    <field name="aors" value="{{ a.90012.label }}"/>
+                    <field name="context" value="{{ c.asterisk_context }}"/>
+                    <field name="disallow" value="all"/>
+                    <field name="allow" value="!all,opus,alaw"/>
+                    <field name="direct_media" value="no"/>
+                    <field name="ice_support" value="no"/>
+                    <field name="rtp_timeout" value="3600"/>
+                </table>
+                <table name="ps_aors" type="insert"  cleanup_after_test="true">
+                    <field name="id" value="{{ a.90012.label }}"/>
+                    <field name="contact" value="sip:{{ a.90012.label }}@{{ c.domain }}:5060"/>
+                </table>
+            </action>
+        </actions>
+    </section>
+    <section type="voip_patrol">
+    <!-- Make a call from one endpoint to other -->
+        <actions>
+            <action type="codec" disable="all"/>
+            <action type="codec" enable="pcma" priority="250"/>
+            <action type="codec" enable="pcmu" priority="249"/>
+            <action type="codec" enable="opus" priority="248"/>
+            <action type="register" label="Register {{ a.90012.label }}"
+                transport="{{ a.90012.transport }}"
+                account="{{ a.90012.username }}"
+                username="{{ a.90012.label }}"
+                auth_username="{{ a.90012.username }}"
+                password="{{ a.90012.password }}"
+                registrar="{{ c.domain }}"
+                realm="{{ c.domain }}"
+                expected_cause_code="200"
+                srtp="{{ a.90012.srtp }}"
+            />
+            <action type="wait" complete="true" ms="2000"/>
+            <action type="accept" label="Receive call on {{ a.90012.label }} from {{ a.90011.label }}"
+                call_count="1"
+                match_account="{{ a.90012.username }}"
+                hangup="10"
+                code="200" reason="OK"
+                transport="{{ a.90012.transport }}"
+                srtp="{{ a.90012.srtp }}"
+                play="{{ c.play_file }}">
+                <check-header name="From" regex="^.*sip:{{ a.90011.label }}@.*$"/>
+            </action>
+            <action type="call" label="Call {{ a.90011.label }} -> {{ a.90012.label }}"
+                transport="tls"
+                expected_cause_code="200"
+                caller="{{ a.90011.label }}@{{ c.domain }}"
+                callee="{{ a.90012.label }}@{{ c.domain }}"
+                from="sip:{{ a.90011.label }}@{{ c.domain }}"
+                to_uri="{{ a.90012.label }}@{{ c.domain }}"
+                max_duration="20" hangup="10"
+                auth_username="{{ a.90011.username }}"
+                password="{{ a.90011.password }}"
+                realm="{{ c.domain }}"
+                rtp_stats="true"
+                max_ring_duration="15"
+                srtp="{{ a.90011.srtp }}"
+                play="{{ c.play_file }}"
+            />
+            <action type="wait" complete="true" ms="30000"/>
+        </actions>
+    </section>
 </config>
 
 ```
