@@ -88,6 +88,8 @@ fi
 P_IMAGE=volts_prepare:latest
 P_CONTAINER_NAME=volts_prepare
 
+mkdir -p tmp/input
+mkdir -p tmp/output
 rm -f tmp/input/scenarios.done
 run_prepare
 
