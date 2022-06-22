@@ -130,7 +130,7 @@ accounts:
         <actions>
             <action type="register" label="Register {{ a.88881.label }}"
                 transport="{{ a.88881.transport }}"
-                Account parameter is more used in receive call on this account later
+                <!-- "account" parameter is more used in receive call on this account later -->
                 account="{{ a.88881.label }}"
                 <!-- username would be a part of AOR - <sip:username@realm> -->
                 username="{{ a.88881.username }}"
