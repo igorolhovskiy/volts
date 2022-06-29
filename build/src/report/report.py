@@ -15,7 +15,7 @@ def process_jsonl_file(file):
         try:
             processed_data.append(json.loads(line))
         except ValueError as e:
-            error = "Line {} is not a JSON".format(line)
+            error = "Line {} is not a JSON: {}".format(line, e)
 
     return error, processed_data
 
@@ -46,23 +46,28 @@ def _normalize_test_name(name):
 
     return normalized_name
 
-def build_test_results(report_data):
+def build_test_results(vp_report_data, d_report_data):
     """
-    Function to process line-by-line data from voip_patrol JSONL file
-    to dict with structure
-    "test_name": {
+    Function to process line-by-line data from *voip_patrol* and *database* JSONL results file
+    to a dict with a structure
+    "scenario_name": {
         "status": ...
         "start_time": ...
         "end_time": ...
         "tests": {
             ...
         }
+        "d_status": ...
+        "d_error": {
+            "stage": ...
+            "text": ...
+        }
     }
     """
     test_results = {}
     current_test = "orphaned"
 
-    for test_entity in report_data:
+    for test_entity in vp_report_data:
 
         # Scenario process start
         # We got start or end of test
@@ -175,6 +180,36 @@ def build_test_results(report_data):
             test_results[test_result_name]["status"] = "FAIL"
             test_results[test_result_name]["status_text"] = "End time missing"
 
+
+    # Enrich results with DB info
+    for test_entity in d_report_data:
+        if not test_entity.get("scenario"):
+            continue
+
+        current_test = test_entity.get("scenario")
+        if current_test not in test_results:
+            continue
+
+        current_test_d_status = test_entity.get("status", "FAIL")
+
+        current_test_d_existing_status = test_results[current_test].get("d_status")
+        if current_test_d_status == "PASS" and current_test_d_existing_status == "PASS":
+            continue
+
+        if current_test_d_status != "PASS":
+            test_results[current_test]["d_status"] = "FAIL"
+            if "d_error" not in test_results[current_test]:
+                test_results[current_test]["d_error"] = {}
+                test_results[current_test]["d_error"]["stage"] = ""
+                test_results[current_test]["d_error"]["text"] = ""
+
+            test_results[current_test]["d_error"]["stage"] += "{} ".format(test_entity.get("stage", "err"))
+            test_results[current_test]["d_error"]["text"] += "{} ".format(test_entity.get("error", "err"))
+            continue
+
+        if not current_test_d_existing_status:
+            test_results[current_test]["d_status"] = "PASS"
+
     return test_results
 
 
@@ -209,14 +244,19 @@ def filter_results_default(test_results):
 
     for scenario_name, scenario_details in test_results.items():
         print("Processing {}".format(scenario_name))
-        if scenario_details.get("status") == "PASS":
+        if scenario_details.get("status") == "PASS" and scenario_details.get("d_status", "PASS") == "PASS":
             continue
+
         printed_results[scenario_name] = {}
         printed_results[scenario_name]["status"] = scenario_details.get("status")
         printed_results[scenario_name]["status_text"] = scenario_details.get("status_text")
         printed_results[scenario_name]["start_time"] = scenario_details.get("start_time")
         printed_results[scenario_name]["end_time"] = scenario_details.get("end_time")
         printed_results[scenario_name]["task_counter"] = scenario_details.get("counter")
+
+        if scenario_details.get("d_status", "PASS") != "PASS":
+            printed_results[scenario_name]["d_status"] = scenario_details.get("d_status")
+            printed_results[scenario_name]["d_error"] = scenario_details.get("d_error", "")
 
         errors.append(scenario_name)
 
@@ -238,10 +278,19 @@ def filter_results_default(test_results):
 
 def print_table(print_results):
     tbl = PrettyTable()
-    tbl.field_names = ["Scenario", "Test", "Status", "Text"]
+
+    tbl.field_names = ["Scenario", "Test", "Status" ,"Text"]
 
     for scenario_name, scenario_details in print_results.items():
-        tbl.add_row([scenario_name, "", scenario_details.get("status"), scenario_details.get("status_text")])
+        vp_status_text = scenario_details.get("status")
+        d_status_text = scenario_details.get("d_status", "PASS")
+
+        if d_status_text == "PASS":
+            status_text = vp_status_text
+        else:
+            status_text = "{}/DB:{}".format(vp_status_text, d_status_text)
+
+        tbl.add_row([scenario_name, "", status_text, scenario_details.get("status_text")])
 
         if not (type(scenario_details.get("tests")) is dict):
             continue
@@ -300,16 +349,27 @@ def print_results_table_full(test_results):
 
 # Main program starts
 try:
-    report_file_name = os.environ.get("REPORT_FILE", "result.jsonl")
-    report_file_path = r'/opt/report/' + report_file_name
+    vp_report_file_name = os.environ.get("VP_RESULT_FILE", "result.jsonl")
+    vp_report_file_path = r'/opt/report/' + vp_report_file_name
 
-    with open(report_file_path) as report_file:
-        process_error, report_data = process_jsonl_file(report_file)
+    with open(vp_report_file_path) as report_file:
+        process_error, vp_report_data = process_jsonl_file(report_file)
         if process_error:
-            raise Exception("Error processing report file: {}".format(process_error))
+            raise Exception("Error processing voip_patrol report file: {}".format(process_error))
+
+    d_report_file_name = os.environ.get("D_RESULT_FILE", "database.jsonl")
+    d_report_file_path = r'/opt/report/' + d_report_file_name
+    d_report_data = {}
+
+    if os.path.exists(d_report_file_path):
+        with open(d_report_file_path) as report_file:
+            process_error, d_report_data = process_jsonl_file(report_file)
+            if process_error:
+                raise Exception("Error processing database report file: {}".format(process_error))
 
     tests_list = get_tests_list()
-    test_results = build_test_results(report_data)
+    test_results = build_test_results(vp_report_data, d_report_data)
+
     align_test_results_with_test_list(test_results, tests_list)
 
     print_style = os.environ.get("REPORT_TYPE", "json")

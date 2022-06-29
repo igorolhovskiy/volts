@@ -48,7 +48,8 @@ run_report() {
     docker rm ${R_CONTAINER_NAME} >> /dev/null 2>&1
 
     docker run --name=${R_CONTAINER_NAME} \
-        --env REPORT_FILE=`echo ${VP_RESULT_FILE}` \
+        --env VP_RESULT_FILE=`echo ${VP_RESULT_FILE}` \
+        --env D_RESULT_FILE=`echo ${D_RESULT_FILE}` \
         --env REPORT_TYPE=`echo ${REPORT_TYPE}` \
         --env TZ=`echo ${TIMEZONE}` \
         --volume ${DIR_PREFIX}/tmp/input:/opt/scenarios/ \
@@ -67,9 +68,11 @@ run_database() {
 
     docker run --name=${D_CONTAINER_NAME} \
         --env SCENARIO=`echo ${CURRENT_SCENARIO}` \
+        --env RESULT_FILE=`echo ${D_RESULT_FILE}` \
         --env STAGE=`echo $1` \
         --env TZ=`echo ${TIMEZONE}` \
         --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/database.xml:/xml/${CURRENT_SCENARIO}.xml \
+        --volume ${DIR_PREFIX}/tmp/output:/output \
         ${D_IMAGE}
 
     docker rm ${R_CONTAINER_NAME} >> /dev/null 2>&1
@@ -101,14 +104,16 @@ fi
 # database
 D_IMAGE=volts_database:latest
 D_CONTAINER_NAME=volts_database
+D_RESULT_FILE="database.jsonl"
 
 # voip_patrol
 VP_IMAGE=volts_vp:latest
 VP_CONTAINER_NAME=volts_vp
 VP_PORT=5060
-VP_RESULT_FILE="result.jsonl"
+VP_RESULT_FILE="voip_patrol.jsonl"
 VP_LOG_LEVEL_FILE=${VP_LOG_LEVEL}
 
+rm -f ${DIR_PREFIX}/tmp/output/${D_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${VP_RESULT_FILE}
 
 if [ -z ${SCENARIO} ]; then

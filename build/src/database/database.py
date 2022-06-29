@@ -34,6 +34,7 @@
 import xml.etree.ElementTree as ET
 import sys
 import os
+import json
 
 def get_db_connection(db_options):
     '''
@@ -64,10 +65,11 @@ def preform_db_operations(db_options, db_actions):
     '''
     Actually preform operations on database.
     Point, we're committing every table action.
-    If we have ignore_on_error != true, than next table statements are not proceeded
+    If we have continue_on_error != true, than next table statements are not proceeded
     '''
     db_conn = get_db_connection(db_options)
     db_cursor = db_conn.cursor()
+    error = ""
 
     for db_action in db_actions:
         for table, table_actions in db_action.items():
@@ -89,11 +91,13 @@ def preform_db_operations(db_options, db_actions):
                 db_cursor.execute(sql_stmt, table_actions['value'])
                 db_conn.commit()
             except Exception as e:
-                if table_actions['ignore_on_error']:
+                error += "[DATABASE][ERROR]:{} ".format(e)
+                if table_actions['continue_on_error']:
                     continue
                 raise Exception("[DATABASE][ERROR]: Problem with action {} on table {}: {}".format(sql_stmt, table, e))
 
     db_conn.close()
+    return error
 
 def form_insert_statement(table, fields):
     sql  = "INSERT INTO {} (".format(table)
@@ -121,30 +125,59 @@ def form_delete_statement(table, fields):
 
     return sql
 
+def write_report(filename, report):
+    report['status'] = "PASS"
+
+    error = report.get("error", "")
+    if len(error) > 0:
+        report['status'] = "FAIL"
+
+    report_line = json.dumps(report)
+    report_line += "\n"
+
+    filename_path = "/output/{}".format(filename)
+    try:
+        f_report = open(filename_path, "a")
+        f_report.seek(0, 2)
+        f_report.write(report_line)
+        f_report.close()
+    except:
+        pass
+
+
 ### SCRIPT START
 scenario_name = os.environ.get("SCENARIO")
 # sage can be pre - running before voip_patrol to populate database and post - to clean up.
 scenario_stage = os.environ.get("STAGE", "pre")
 
+report_file = os.environ.get("RESULT_FILE", "database.jsonl")
 
 scenario_file = '/xml/{}.xml'.format(scenario_name)
 if not os.path.exists(scenario_file):
     print("Database scenario file is absent for {}/{}, skipping...".format(scenario_name, scenario_stage))
     sys.exit(0)
 
+report = {}
+report['scenario'] = scenario_name
+report['stage'] = scenario_stage
+report['error'] = ''
+
 try:
     tree = ET.parse(scenario_file)
     scenario_root = tree.getroot()
 except Exception as e:
-    print("Problem parsing {}:{}".format(scenario_name, e))
+    report['error'] = "Problem parsing {}".format(e)
+    write_report(report_file, report)
     sys.exit(1)
 
 if scenario_root.tag != 'config':
-    print("Scenario root tag is not <config>, exiting...")
+    report['error'] = "Scenario root tag is not <config>, exiting..."
+    write_report(report_file, report)
     sys.exit(1)
 
 if scenario_root[0].tag != 'actions':
-    print("Scenario missing <actions>, exiting...")
+    report['error'] = "Scenario missing <actions>, exiting..."
+    write_report(report_file, report)
     sys.exit(1)
 
 actions = scenario_root[0]
@@ -213,14 +246,14 @@ for action in actions:
         if is_cleanup and scenario_stage == 'post':
             table_action = 'delete' if table_action in ['replace', 'insert'] else 'replace'
 
-        ignore_on_error = table.attrib.get('ignore_on_error', 'false')
-        ignore_on_error = True if ignore_on_error.lower() in ['true', 'on', '1'] else False
+        continue_on_error = table.attrib.get('continue_on_error', 'false')
+        continue_on_error = True if continue_on_error.lower() in ['true', 'on', '1'] else False
 
         db_action[table_name] = {
             'type'  :           table_action,
             'name'  :           [],
             'value' :           [],
-            'ignore_on_error':  ignore_on_error,
+            'continue_on_error':  continue_on_error,
         }
 
         field_names = []
@@ -242,6 +275,9 @@ for action in actions:
         db_actions.append(db_action)
 
     try:
-        preform_db_operations(db_options, db_actions)
+        report['error'] += preform_db_operations(db_options, db_actions)
     except Exception as e:
-        print("[DATABASE][ERROR]: {}".format(e))
+        report['error'] = "[DATABASE][ERROR]: {}".format(e)
+        break
+
+write_report(report_file, report)

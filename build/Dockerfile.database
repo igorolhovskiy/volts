@@ -4,6 +4,7 @@ LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 COPY src/database/requirements.txt /root/requirements.txt
 
 RUN mkdir -p /xml && \
+    mkdir -p /output && \
     pip install -r /root/requirements.txt
 
 COPY src/database/database.py /root/database.py
@@ -11,7 +12,7 @@ COPY entrypoint.database.sh /docker-entrypoint.sh
 
 RUN chmod +x /docker-entrypoint.sh
 
-VOLUME ["/xml" ]
+VOLUME ["/xml", "/output" ]
 
 WORKDIR /root
 

@@ -157,7 +157,7 @@ So, inside `database` action you specify tables you're working with. Each `table
 
 * `name` - actually name of table we're working with
 * `type` - could be `insert`, `replace` and `delete`. Forming actually `INSERT`, `REPLACE` and `DELETE` SQL statements for database.
-* `ignore_on_error` - optional. Em.. ignore errors on preformed actions and continue no matter what. By default container will stop working on first error encountered.
+* `continue_on_error` - optional. Em.. ignore errors on preformed actions and continue no matter what. By default database actions will be stopped after encountering first error.
 * `cleanup_after_test` - optional. Allows you not to write explicit `post` stage for your `insert` types. Will automatically form `delete` type on `post` stage for all `insert` (not `replace`) that were declared on `pre` stage.
 #### Expect fail on register
 We're deleting data from database and restoring it afterwards.
