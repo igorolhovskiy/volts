@@ -1,8 +1,11 @@
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct.svg)](https://stand-with-ukraine.pp.ua)
+
 # VOLTS
 
 **Voip Open Linear Tester Suite**
 
-Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) and [`docker`](https://www.docker.com/)
+Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) and [`docker`](https://www.docker.com/)</br>
+Some alternative introduction to the system can be found on [DOU](https://dou.ua/forums/topic/38567/)(ukrainian)
 
 ## 10'000 ft. view
 
