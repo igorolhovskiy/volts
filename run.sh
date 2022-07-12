@@ -5,8 +5,7 @@ REPORT_TYPE='table_full'
 # voip_patrol log level on console
 VP_LOG_LEVEL=0
 # Timezone
-TIMEZONE=`cat /etc/timezone`
-
+TIMEZONE=`timedatectl | grep "Time zone" | awk '{print $3}'`
 
 run_voip_patrol() {
     docker rm ${VP_CONTAINER_NAME} >> /dev/null 2>&1
