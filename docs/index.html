@@ -22,6 +22,9 @@
           <a href="#10'000ft.view" class="menu__link menu__link--main">10'000 ft. view</a>
         </li>
         <li class="menu__item">
+          <a href="#Getting" class="menu__link menu__link--main"> Getting </a>
+        </li>
+        <li class="menu__item">
           <a href="#Building" class="menu__link menu__link--main"> Building </a>
         </li>
         <li class="menu__item">
@@ -151,33 +154,43 @@
         </li>
       </ol>
 
+      <h2 class="title" id="Getting">Getting</h2>
+      <p class="text">
+        To get it you'll need <span>git</span> installed. But who don't have it nowdays?
+        <br />
+        Than just run
+        <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"># <span class="hljs-keyword" style="color: rgb(252, 194, 140);">git</span> clone https://github.com/igorolhovskiy/volts.git</br># <span class="hljs-keyword" style="color: rgb(252, 194, 140);">cd</span> volts</pre>
+      </p>
+
       <h2 class="title" id="Building">Building</h2>
 
       <p class="text">
         Suite is designed to run locally from your Linux PC or Mac (maybe). And
         of course, <span>docker</span> should be installed. It's up to you.
         <br />
-        To build, just run <span>./build.sh</span>. It would build 4
-        <span>docker</span> images and tag em accordingly. <br />
+        To build, just run </p>
+        <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"># ./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">build</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span></pre>
+        <p class="text">
+        inside <span>volts</span> directory. It would build 4 <span>docker</span> images and tag em accordingly. <br />
         In a case if <span>voip_patrol</span> is updated, you need to rebuild
-        it's container again, you can do it with <span>./build.sh -r</span>.
-      </p>
+        it's container again, you can do it with </p>
+        <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"># ./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">build</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span> -r</pre>
 
       <h2 class="title" id="Running">Running</h2>
 
       <p class="text">After building, just run</p>
 
-      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);">./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span></pre>
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"># ./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span></pre>
       <p class="text">
         Simple, isn't it? This will run all scenarios found in
         <span>scenarios</span> folder one by one. To run single scenario, run
       </p>
 
-      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);">./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span> &lt;scenario_name&gt;</pre>
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"># ./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span> &lt;scenario_name&gt;</pre>
 
       <p class="text">or</p>
 
-      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);">./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span> scenarios/&lt;scenario_name&gt;</pre>
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"># ./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span> scenarios/&lt;scenario_name&gt;</pre>
 
       <p class="text">
         After running of the suite you can always find a
