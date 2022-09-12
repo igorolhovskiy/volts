@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Volts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <aside class="navigation">
+
+      <a href="#" class="logo"><img class="nav-img" src="images/logo.png" alt=""> </a>
+      <ul class="menu">
+        <li class="menu__item">
+          <a href="#10'000ft.view" class="menu__link menu__link--main">10'000 ft. view</a>
+        </li>
+        <li class="menu__item">
+          <a href="#Building" class="menu__link menu__link--main"> Building </a>
+        </li>
+        <li class="menu__item">
+          <a href="#Running" class="menu__link menu__link--main"> Running </a>
+        </li>
+        <li class="menu__item">
+          <a href="#Getting_results" class="menu__link menu__link--main"> Getting results </a>
+        </li>
+        <li class="menu__item">
+          <a href="#Configuration" class="menu__link menu__link--main"> Configuration </a>
+          <ul class="menu">
+            <li class="menu__item">
+              <a href="#Scenarios" class="menu__link menu__link--main"> Scenarios </a>
+              <ul class="menu">
+                <li class="menu__item">
+                  <a href="#Main config->config.yaml" class="menu__link">Main config</a>
+                </li>
+                <li class="menu__item">
+                  <a href="#Make_a_successful_register" class="menu__link menu__link--main"
+                    >Just controlling calls</a
+                  >
+                  <ul class="menu">
+                    <li class="menu__item">
+                      <a href="#Make_a_successful_register" class="menu__link"
+                        >Make a successful register</a
+                      >
+                    </li>
+                    <li class="menu__item">
+                      <a href="#Expect_fail_on_register" class="menu__link">Expect fail on register</a>
+                    </li>
+                    <li class="menu__item">
+                      <a href="#Simple_call_scenario" class="menu__link">Simple call scenario</a>
+                    </li>
+                    <li class="menu__item">
+                      <a href="#Advanced_call_scenario" class="menu__link">Advanced call scenario</a>
+                    </li>
+                  </ul>
+                </li>
+                <li class="menu__item">
+                  <a href="#Advanced_call_scenario-2" class="menu__link menu__link--main"
+                    >Databases integration</a
+                  >
+
+                  <ul class="menu">
+                    <li class="menu__item">
+                      <a href="#Advanced_call_scenario-2" class="menu__link"
+                        >Combined scenario</a
+                      >
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </aside>
+    <main class="documentation">
+      <h1 class="title title--main">VOLTS</h1>
+
+      <h4 class="title title--litte">Voip Open Linear Tester Suite</h4>
+
+      <p class="text">
+        Functional tests for VoIP systems based on
+        <a href="https://github.com/igorolhovskiy/voip_patrol" class="text-link"
+          >voip_patrol</a
+        >
+        and <a href="https://www.docker.com/" class="text-link">docker</a>.
+        <br />
+        Some alternative introduction to the system can be found on
+        <a href="https://dou.ua/forums/topic/38567/" class="text-link">DOU</a
+        >(ukrainian)
+      </p>
+
+      <h2 class="title" id="10'000ft.view">10'000 ft. view</h2>
+
+      <p class="text">
+        System is designed to run simple call scenarios, that you usually do
+        with your desk phones.
+        <br />
+        Scenarios are run one by one from <span>scenarios</span> folder in
+        alphabetical order, which could be considered as a limitation, but also
+        allows you to reuse same accounts in a different set of tests. This
+        stands for <span>Linear</span> in the name ;) So, call some
+        destination(s) with one(or more) device(s) and control call arrival on
+        another phone(s). <br />
+        But wait, there is more. VOLTS also can integrate with your MySQL and/or
+        PostgreSQL databases to write some data there before test and remove it
+        after. <br />
+        It will make, receive calls and configure database. It's not do
+        transfers at the moment. Sorry. I don't need it <br /><br />
+      </p>
+
+      <p class="text">
+        Suite consists of 4 parts, that are running sequentially
+      </p>
+
+      <ol class="text-list">
+        <li>
+          Preparation - at this part we're transforming templates to real
+          scenarios of <span>voip_patrol</span> using
+          <a
+            href="https://jinja.palletsprojects.com/en/3.0.x/"
+            class="text-link"
+            >Jinja2</a
+          >
+          template engine with
+          <a href="https://github.com/hackebrot/jinja2-time" class="text-link"
+            >jinja2_time</a
+          >
+          extension to put some dynamic data based on time.
+        </li>
+        <li>
+          Running database scripts. Usually - put some data inside some routing
+          or subscriber data.
+        </li>
+        <li>Running <span>voip_patrol</span> against scenario.</li>
+        <li>
+          Again running database scripts. Usually - remove data that had been
+          put at the stage 2.
+        </li>
+        <li>
+          Report - at this part we're analyzing results of previous step reading
+          and interpreting file obtained running step 3. Printing results in a
+          desired way. Table by default. Steps 2-4 are running sequentially
+          against scenarios files prepared at step 1. One at a time.
+        </li>
+      </ol>
+
+      <h2 class="title" id="Building">Building</h2>
+
+      <p class="text">
+        Suite is designed to run locally from your Linux PC or Mac (maybe). And
+        of course, <span>docker</span> should be installed. It's up to you.
+        <br />
+        To build, just run <span>./build.sh</span>. It would build 4
+        <span>docker</span> images and tag em accordingly. <br />
+        In a case if <span>voip_patrol</span> is updated, you need to rebuild
+        it's container again, you can do it with <span>./build.sh -r</span>.
+      </p>
+
+      <h2 class="title" id="Running">Running</h2>
+
+      <p class="text">After building, just run</p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);">./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span></pre>
+      <p class="text">
+        Simple, isn't it? This will run all scenarios found in
+        <span>scenarios</span> folder one by one. To run single scenario, run
+      </p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);">./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span> &lt;scenario_name&gt;</pre>
+
+      <p class="text">or</p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);">./<span class="hljs-keyword" style="color: rgb(252, 194, 140);">run</span>.<span class="hljs-keyword" style="color: rgb(252, 194, 140);">sh</span> scenarios/&lt;scenario_name&gt;</pre>
+
+      <p class="text">
+        After running of the suite you can always find a
+        <span>voip_patrol</span> presented results in
+        <span>tmp/output</span> folder. <br /><br />
+        But simply run something blindly is boring, so before this, best to do
+        some
+      </p>
+
+      <h2 class="title" id="Configuration">Configuration</h2>
+
+      <p class="text">
+        We suppose to configure 2 parts here. First, and most complex are
+      </p>
+
+      <h3 class="title title--mini" id="Scenarios">Scenarios</h3>
+
+      <p class="text">
+        <span>VOLTS</span> scenarios are combined <span>voip_patrol</span> and
+        database-controlled scenarios, that are just being templatized with
+        <span>Jinja2</span> style. Mostly done not to repeat some passwords,
+        usernames, domains, etc. <br />
+        Also, due to using <span>jinja2-time</span> extension, it's possible to
+        use dynamic time/date values in your scenarios, for example testing some
+        time-based rules on your PBX. For full documentation on how to use this
+        type of data, please refer to
+        <a href="https://github.com/hackebrot/jinja2-time" class="text-link"
+          >'jinja2-time'</a
+        >
+        documentation. Values for templates are taken from
+        <span>scenarios/config.yaml</span> <br />
+        One thing to mention here, that vars from <span>global</span> section
+        transforms to <span>c.</span> and from <span>accounts</span> to
+        <span>a.</span> in templates for shorter notation. Also all settings
+        from <span>global</span> section are inherited to
+        <span>accounts</span> section automatically, unless they are defined
+        there explicitly. To get most of it, please refer to
+        <a
+          href="https://github.com/https://github.com/igorolhovskiy/voip_patrol/voip_patrol"
+          class="text-link"
+          >voip_patrol</a
+        >
+        config, but here just some more basic examples. <br /><br />
+        <span id="Main config->config.yaml">config.yaml</span>
+    </p>
+
+    <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="hljs-attribute" style="color: rgb(255, 255, 170);">global</span>:
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">domain</span>:     <span class="hljs-string" style="color: rgb(162, 252, 162);">'&lt;SOME_DOMAIN&gt;'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">transport</span>:  <span class="hljs-string" style="color: rgb(162, 252, 162);">'tls'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">srtp</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'dtls,sdes,force'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">play_file</span>:  <span class="hljs-string" style="color: rgb(162, 252, 162);">'/voice_ref_files/8000_12s.wav'</span>
+    <span class="hljs-attribute" style="color: rgb(255, 255, 170);">databases</span>:
+      <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamdb'</span>:
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">type</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mysql'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorw'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:   <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorwpass'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">base</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailio'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">host</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mykamailiodb.local'</span>
+    <span class="hljs-attribute" style="color: rgb(255, 255, 170);">accounts</span>:
+      <span class="hljs-string" style="color: rgb(162, 252, 162);">'88881'</span>:
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">username</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'88881'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">auth_username</span>:  <span class="hljs-string" style="color: rgb(162, 252, 162);">'88881-1'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'SuperSecretPass1'</span>
+      <span class="hljs-string" style="color: rgb(162, 252, 162);">'88882'</span>:
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">username</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'88882'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">auth_username</span>:  <span class="hljs-string" style="color: rgb(162, 252, 162);">'88882-67345'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'SuperSecretPass2'</span>
+      <span class="hljs-string" style="color: rgb(162, 252, 162);">'90001'</span>:
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">username</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'90001'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">auth_username</span>:  <span class="hljs-string" style="color: rgb(162, 252, 162);">'90001'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'SuperSecretPass3'</span></pre>
+
+      <h4 class="title title--little" id="Make_a_successful_register">Make a successful register</h4>
+
+      <p class="text">Here we assume that account data is known to our PBX.</p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"register"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Register </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            &lt;!<span class="hljs-attr">--</span> "<span class="hljs-attr">account</span>" <span class="hljs-attr">parameter</span> <span class="hljs-attr">is</span> <span class="hljs-attr">more</span> <span class="hljs-attr">used</span> <span class="hljs-attr">in</span> <span class="hljs-attr">receive</span> <span class="hljs-attr">call</span> <span class="hljs-attr">on</span> <span class="hljs-attr">this</span> <span class="hljs-attr">account</span> <span class="hljs-attr">later</span> <span class="hljs-attr">--</span>&gt;</span>
+            account="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml">"
+            <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- username would be a part of AOR - &lt;sip:username@realm&gt; --&gt;</span>
+            username="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml">"
+            <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- auth_username would be used in WWW-Authorize procedure --&gt;</span>
+            auth_username="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.auth_username }}</span><span class="xml">"
+            password="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.password }}</span><span class="xml">"
+            registrar="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+            realm="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.domain }}</span><span class="xml">"
+            <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- We're expecting get 200 code here, so REGISTER is successfull --&gt;</span>
+            expected_cause_code="200"
+        /&gt;
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Just wait 2 sec for all timeouts --&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"2000"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+<span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span></span></pre>
+
+      <p class="text">
+        .. but what if we need to add account data to PBX dynamically? Assume,
+        that we have Kamailio as a PBX here.
+      </p>
+
+<pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="xml"><span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Test simple register --&gt;</span>
+  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"database"</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+                <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- "kamdb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"kamdb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- what data are we gonna insert into "subscriber" table? --&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"subscriber"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span> <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"username"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"domain"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"password"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">action</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">section</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"voip_patrol"</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"register"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Register </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  &lt;!<span class="hljs-attr">--</span> "<span class="hljs-attr">account</span>" <span class="hljs-attr">parameter</span> <span class="hljs-attr">is</span> <span class="hljs-attr">more</span> <span class="hljs-attr">used</span> <span class="hljs-attr">in</span> <span class="hljs-attr">receive</span> <span class="hljs-attr">call</span> <span class="hljs-attr">on</span> <span class="hljs-attr">this</span> <span class="hljs-attr">account</span> <span class="hljs-attr">later</span> <span class="hljs-attr">--</span>&gt;</span>
+                  account="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml">"
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- username would be a part of AOR - &lt;sip:username@realm&gt; --&gt;</span>
+                  username="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml">"
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- auth_username would be used in WWW-Authorize procedure --&gt;</span>
+                  auth_username="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.auth_username }}</span><span class="xml">"
+                  password="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.password }}</span><span class="xml">"
+                  registrar="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+                  realm="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.domain }}</span><span class="xml">"
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- We're expecting get 200 code here, so REGISTER is successfull --&gt;</span>
+                  expected_cause_code="200"
+              /&gt;
+              <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Just wait 2 sec for all timeouts --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"2000"</span>/&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">section</span>&gt;</span>
+  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span></span></pre>
+
+      <p class="text">
+        Database config is also done in XML. We have 2 stages of database
+        scripts.
+      </p>
+
+      <ul class="text-list">
+        <li>
+          <span>pre</span> - Lauched before running <span>voip_patrol</span>.
+          Usually stage to put some accounts data, routing, etc
+        </li>
+        <li>
+          <span>post</span> - Obviously, running after <span>voip_patrol</span>.
+          For cleanup data inserted in <span>pre</span> stage.
+        </li>
+      </ul>
+
+      <p class="text">
+        So, inside database action you specify tables you're working with. Each
+        table secton have 4 attributes.
+      </p>
+
+      <ul class="text-list">
+        <li><span>name</span> - actually name of table we're working with</li>
+        <li>
+          <span>type</span> - could be <span>insert</span>,
+          <span>replace</span> and <span>delete</span>. Forming actually
+          <span>INSERT</span>, <span>REPLACE</span> and <span>DELETE</span> SQL
+          statements for database.
+        </li>
+        <li>
+          <span>continue_on_error</span> - optional. Em.. ignore errors on
+          preformed actions and continue no matter what. By default database
+          actions will be stopped after encountering first error.
+        </li>
+        <li>
+          <span>cleanup_after_test</span> - optional. Allows you not to write
+          explicit <span>post</span> stage for your <span>insert</span> types.
+          Will automatically form <span>delete</span> type on
+          <span>post</span> stage for all <span>insert</span> (not
+          <span>replace</span> ) that were declared on <span>pre</span> stage.
+        </li>
+      </ul>
+
+      <h4 class="title title--little" id="Expect_fail_on_register">Expect fail on register</h4>
+
+      <p class="text">
+        We're deleting data from database and restoring it afterwards.
+      </p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="xml"><span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Test simple register --&gt;</span>
+  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"database"</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+                <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- "kamdb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"kamdb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- what data are we gonna insert into "subscriber" table? --&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"subscriber"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span> <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"username"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"domain"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"password"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">action</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">section</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"voip_patrol"</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"register"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Register </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  &lt;!<span class="hljs-attr">--</span> "<span class="hljs-attr">account</span>" <span class="hljs-attr">parameter</span> <span class="hljs-attr">is</span> <span class="hljs-attr">more</span> <span class="hljs-attr">used</span> <span class="hljs-attr">in</span> <span class="hljs-attr">receive</span> <span class="hljs-attr">call</span> <span class="hljs-attr">on</span> <span class="hljs-attr">this</span> <span class="hljs-attr">account</span> <span class="hljs-attr">later</span> <span class="hljs-attr">--</span>&gt;</span>
+                  account="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml">"
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- username would be a part of AOR - &lt;sip:username@realm&gt; --&gt;</span>
+                  username="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml">"
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- auth_username would be used in WWW-Authorize procedure --&gt;</span>
+                  auth_username="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.auth_username }}</span><span class="xml">"
+                  password="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.password }}</span><span class="xml">"
+                  registrar="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+                  realm="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.domain }}</span><span class="xml">"
+                  <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- We're expecting get 200 code here, so REGISTER is successfull --&gt;</span>
+                  expected_cause_code="200"
+              /&gt;
+              <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Just wait 2 sec for all timeouts --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"2000"</span>/&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">section</span>&gt;</span>
+  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span></span></pre>
+
+      <h4 class="title title--little" id="Simple_call_scenario">Simple call scenario</h4>
+
+      <p class="text">
+        Register with 1 account and make a call from <span>90001</span> to
+        <span>88881</span>. Max wait time to answer - 15 sec, duration of
+        connected call - 10 sec. Point, we don't register account
+        <span>90001</span> here, as we're not receiving a calls on it, just need
+        to provide credentials on INVITE. <br />
+        Also trick, <span>match_account</span> in <span>accept</span> perfectly
+        links with <span>account</span> in <span>register</span>.
+      </p>
+
+  <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
+<span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+    <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- As we're using call functionality here - define list of codecs --&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">disable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"all"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pcma"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"250"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pcmu"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"249"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"opus"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"248"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"register"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Register </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">account</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">auth_username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.auth_username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">password</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">registrar</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">realm</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">expected_cause_code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span>
+        &lt;!<span class="hljs-attr">--</span> <span class="hljs-attr">Make</span> <span class="hljs-attr">sure</span> <span class="hljs-attr">we</span>'<span class="hljs-attr">re</span> <span class="hljs-attr">using</span> <span class="hljs-attr">SRTP</span> <span class="hljs-attr">on</span> <span class="hljs-attr">a</span> <span class="hljs-attr">call</span> <span class="hljs-attr">receive.</span> <span class="hljs-attr">This</span> <span class="hljs-attr">is</span> <span class="hljs-attr">done</span> <span class="hljs-attr">here</span> <span class="hljs-attr">as</span> <span class="hljs-attr">accounts</span> <span class="hljs-attr">are</span> <span class="hljs-attr">created</span> <span class="hljs-attr">before</span> <span class="hljs-attr">accept</span>(<span class="hljs-attr">answer</span>) <span class="hljs-attr">action</span> <span class="hljs-attr">--</span>&gt;</span>
+        srtp="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.srtp }}</span><span class="xml">"
+    /&gt;
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"2000"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"accept"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Receive call on </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        &lt;!<span class="hljs-attr">--</span> <span class="hljs-attr">This</span> <span class="hljs-attr">is</span> <span class="hljs-attr">not</span> <span class="hljs-attr">a</span> <span class="hljs-attr">load</span> <span class="hljs-attr">test</span> <span class="hljs-attr">-</span> <span class="hljs-attr">so</span> <span class="hljs-attr">only</span> <span class="hljs-attr">1</span> <span class="hljs-attr">call</span> <span class="hljs-attr">is</span> <span class="hljs-attr">expected</span> <span class="hljs-attr">--</span>&gt;</span>
+        call_count="1"
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Make sure we're received a call on a previously registered account --&gt;</span>
+        match_account="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml">"
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Hangup in 10 seconds after answer --&gt;</span>
+        hangup="10"
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Send back "200 OK" --&gt;</span>
+        code="200" reason="OK"
+        transport="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.transport }}</span><span class="xml">"
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Make sure we're using SRTP --&gt;</span>
+        srtp="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.srtp }}</span><span class="xml">"
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Play some file back to gather RTCP stats in report --&gt;</span>
+        play="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.play_file }}</span><span class="xml">"
+    /&gt;
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"call"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Call </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);"> -&gt; </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"tls"</span>
+        &lt;!<span class="hljs-attr">--</span> <span class="hljs-attr">We</span>'<span class="hljs-attr">re</span> <span class="hljs-attr">waiting</span> <span class="hljs-attr">for</span> <span class="hljs-attr">an</span> <span class="hljs-attr">answer</span> <span class="hljs-attr">--</span>&gt;</span>
+        expected_cause_code="200"
+        caller="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.label }}</span><span class="xml">@</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+        callee="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml">@</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+        from="sip:</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.label }}</span><span class="xml">@</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+        to_uri="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml">@</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+        max_duration="20" hangup="10"
+        <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- We're specifying all auth data here for INVITE --&gt;</span>
+        auth_username="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.username }}</span><span class="xml">"
+        password="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.password }}</span><span class="xml">"
+        realm="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml">"
+        rtp_stats="true"
+        max_ring_duration="15"
+        srtp="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.srtp }}</span><span class="xml">"
+        play="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.play_file }}</span><span class="xml">"
+    /&gt;
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"30000"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+<span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span></span></pre>
+
+      <h4 class="title title--little" id="Advanced_call_scenario">Advanced call scenario</h4>
+
+      <p class="text">
+        Register with 2 accounts and call from third one, not answer on 1st and
+        make sure we receive call on second. So, your PBX should be configured
+        to make a Forward-No-Answer from <span>88881</span> to
+        <span>88882</span>. <br />
+        Also make sure, that on <span>88882</span> we got the call from
+        <span>90001</span> (based on CallerID).
+      </p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">disable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"all"</span>/&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pcma"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"250"</span>/&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pcmu"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"249"</span>/&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"opus"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"248"</span>/&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"register"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Register </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">account</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">auth_username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.auth_username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">password</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">registrar</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">realm</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">expected_cause_code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span>
+            <span class="hljs-attr">srtp</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.srtp }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        /&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"register"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Register </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">account</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">auth_username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.auth_username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">password</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">registrar</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">realm</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">expected_cause_code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span>
+            <span class="hljs-attr">srtp</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.srtp }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+        /&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"2000"</span>/&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"call"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Call from 90001 to 88881-&gt;88882"</span>
+            <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">expected_cause_code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span>
+            <span class="hljs-attr">caller</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">callee</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"88881@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">from</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"sip:</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">to_uri</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"88881@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">max_duration</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"20"</span> <span class="hljs-attr">hangup</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"10"</span>
+            <span class="hljs-attr">auth_username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">password</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">realm</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">rtp_stats</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>
+            &lt;!<span class="hljs-attr">--</span> <span class="hljs-attr">Set</span> <span class="hljs-attr">some</span> <span class="hljs-attr">high</span> <span class="hljs-attr">ring</span> <span class="hljs-attr">timeout</span>, <span class="hljs-attr">so</span> <span class="hljs-attr">delayed</span> <span class="hljs-attr">forward</span> <span class="hljs-attr">will</span> <span class="hljs-attr">happen</span> <span class="hljs-attr">--</span>&gt;</span>
+            max_ring_duration="60"
+            srtp="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.srtp }}</span><span class="xml">"
+            play="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.play_file }}</span><span class="xml">"
+        /&gt;
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"accept"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Receive call on </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">match_account</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">call_count</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"1"</span>
+            <span class="hljs-attr">hangup</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"10"</span>
+            <span class="hljs-attr">ring_duration</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"30"</span>
+            &lt;!<span class="hljs-attr">--</span> <span class="hljs-attr">We</span>'<span class="hljs-attr">re</span> <span class="hljs-attr">expecting</span> <span class="hljs-attr">a</span> <span class="hljs-attr">CANCEL</span> <span class="hljs-attr">here.</span> <span class="hljs-attr">And</span> <span class="hljs-attr">it</span>'<span class="hljs-attr">s</span> <span class="hljs-attr">not</span> <span class="hljs-attr">optional</span> <span class="hljs-attr">--</span>&gt;</span>
+            cancel="force"
+            transport="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.transport }}</span><span class="xml">"
+            srtp="</span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.srtp }}</span><span class="xml">"
+        /&gt;
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"accept"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Receive call on </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">match_account</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">call_count</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"1"</span>
+            <span class="hljs-attr">hangup</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"10"</span>
+            <span class="hljs-attr">code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span> <span class="hljs-attr">reason</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"OK"</span>
+            <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">srtp</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88882.srtp }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+            <span class="hljs-attr">play</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.play_file }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>&gt;</span>
+            <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Check that From header matching what we need. This way we can control CallerID. Adjust domain (and whole regex) accordingly --&gt;</span>
+            <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">check-header</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"From"</span> <span class="hljs-attr">regex</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"^.*sip:</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90001.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@example\.com&gt;.*$"</span>/&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">action</span>&gt;</span>
+        <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"20000"</span>/&gt;</span>
+    <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+<span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span></span></pre>
+
+      <h4 class="title title--little" id="Advanced_call_scenario-2">
+        Advanced call scenario - 2. Now with databases.
+      </h4>
+
+      <p class="text">
+        Schema - Kamailio subscriber and than we have Asterisk behind as PBX.
+        <br /><br />
+        <span>config.yaml</span>
+      </p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="hljs-attribute" style="color: rgb(255, 255, 170);">global</span>:
+    <span class="hljs-attribute" style="color: rgb(255, 255, 170);">domain</span>:           <span class="hljs-string" style="color: rgb(162, 252, 162);">'&lt;SOME_DOMAIN&gt;'</span>
+    <span class="hljs-attribute" style="color: rgb(255, 255, 170);">transport</span>:        <span class="hljs-string" style="color: rgb(162, 252, 162);">'tls'</span>
+    <span class="hljs-attribute" style="color: rgb(255, 255, 170);">srtp</span>:             <span class="hljs-string" style="color: rgb(162, 252, 162);">'dtls,sdes,force'</span>
+    <span class="hljs-attribute" style="color: rgb(255, 255, 170);">play_file</span>:        <span class="hljs-string" style="color: rgb(162, 252, 162);">'/voice_ref_files/8000_2m30.wav'</span>
+    <span class="hljs-attribute" style="color: rgb(255, 255, 170);">asterisk_context</span>: <span class="hljs-string" style="color: rgb(162, 252, 162);">'default'</span>
+  <span class="hljs-attribute" style="color: rgb(255, 255, 170);">databases</span>:
+    <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamdb'</span>:
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">type</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mysql'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorw'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:   <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorwpass'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">base</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailio'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">host</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mykamailiodb.local'</span>
+    <span class="hljs-string" style="color: rgb(162, 252, 162);">'astdb'</span>:
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">type</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'pgsql'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'asteriskrw'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:   <span class="hljs-string" style="color: rgb(162, 252, 162);">'asteriskrwpass'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">base</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'asterisk'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">host</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'myasteriskdb.local'</span>
+  <span class="hljs-attribute" style="color: rgb(255, 255, 170);">accounts</span>:
+    <span class="hljs-string" style="color: rgb(162, 252, 162);">'90011'</span>:
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">username</span>: <span class="hljs-string" style="color: rgb(162, 252, 162);">'90011'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>: <span class="hljs-string" style="color: rgb(162, 252, 162);">'SuperSecretPass1'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">ha1</span>:      <span class="hljs-string" style="color: rgb(162, 252, 162);">'SuperSecretHA1'</span>
+    <span class="hljs-string" style="color: rgb(162, 252, 162);">'90012'</span>:
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">username</span>: <span class="hljs-string" style="color: rgb(162, 252, 162);">'90012'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>: <span class="hljs-string" style="color: rgb(162, 252, 162);">'SuperSecretPass2'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">ha1</span>:      <span class="hljs-string" style="color: rgb(162, 252, 162);">'SuperSecretHA2'</span></pre>
+
+      <p class="text">
+        And now we need to populate all databases and make a call!
+      </p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="xml"><span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Register with 90012 and receive a call from 90011 --&gt;</span>
+  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"database"</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+          <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- add subscribers to Kamailio --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"kamdb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"subscriber"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span>  <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"username"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"domain"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ha1"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.ha1 }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- here password due to ha1 is useless, so we can put some data based on jinja2_time.TimeExtension (https://github.com/hackebrot/jinja2-time) --&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"password"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-tag">{% <span class="hljs-name" style="font-weight: 700;"><span class="hljs-name" style="font-weight: 700;">now</span></span> 'local' %}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"subscriber"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span>  <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"username"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"domain"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ha1"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.ha1 }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"password"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-tag">{% <span class="hljs-name" style="font-weight: 700;"><span class="hljs-name" style="font-weight: 700;">now</span></span> 'local' + 'days=1', '%D' %}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">action</span>&gt;</span>
+              <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- add endpoints and aors to Asterisk --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"astdb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ps_endpoints"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span>  <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"transport"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"transport-udp"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"aors"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"context"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.asterisk_context }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"disallow"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"all"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"allow"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"!all,opus,alaw"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"direct_media"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"no"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ice_support"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"no"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"rtp_timeout"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"3600"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ps_aors"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span>  <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"contact"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"sip:</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">:5060"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ps_endpoints"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span>  <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"transport"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"transport-udp"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"aors"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"context"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.asterisk_context }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"disallow"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"all"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"allow"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"!all,opus,alaw"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"direct_media"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"no"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ice_support"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"no"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"rtp_timeout"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"3600"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"ps_aors"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span>  <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"id"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
+                      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"contact"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"sip:</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">:5060"</span>/&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">table</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">action</span>&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">section</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"voip_patrol"</span>&gt;</span>
+      <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Make a call from one endpoint to other --&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">disable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"all"</span>/&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pcma"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"250"</span>/&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pcmu"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"249"</span>/&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"codec"</span> <span class="hljs-attr">enable</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"opus"</span> <span class="hljs-attr">priority</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"248"</span>/&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"register"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Register </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">account</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">auth_username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">password</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">registrar</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">realm</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">expected_cause_code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span>
+                  <span class="hljs-attr">srtp</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.srtp }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+              /&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"2000"</span>/&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"accept"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Receive call on </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);"> from </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">call_count</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"1"</span>
+                  <span class="hljs-attr">match_account</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">hangup</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"10"</span>
+                  <span class="hljs-attr">code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span> <span class="hljs-attr">reason</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"OK"</span>
+                  <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.transport }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">srtp</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.srtp }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">play</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.play_file }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>&gt;</span>
+                  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">check-header</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"From"</span> <span class="hljs-attr">regex</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"^.*sip:</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@.*$"</span>/&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">action</span>&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"call"</span> <span class="hljs-attr">label</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"Call </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);"> -&gt; </span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">transport</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"tls"</span>
+                  <span class="hljs-attr">expected_cause_code</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"200"</span>
+                  <span class="hljs-attr">caller</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">callee</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">from</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"sip:</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">to_uri</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90012.label }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">@</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">max_duration</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"20"</span> <span class="hljs-attr">hangup</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"10"</span>
+                  <span class="hljs-attr">auth_username</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">password</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.password }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">realm</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">rtp_stats</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>
+                  <span class="hljs-attr">max_ring_duration</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"15"</span>
+                  <span class="hljs-attr">srtp</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.srtp }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+                  <span class="hljs-attr">play</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.play_file }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>
+              /&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"wait"</span> <span class="hljs-attr">complete</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span> <span class="hljs-attr">ms</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"30000"</span>/&gt;</span>
+          <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
+      <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">section</span>&gt;</span>
+  <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;/<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span></span></pre>
+
+      <h3 class="title title--mini">run.sh script</h3>
+
+      <p class="text">Not that much to configure here, mostly you'll be interested in setting environement variables at the start of the script</p>
+
+      <table class="table">
+        <tr class="table__row table__row--main">
+            <td class="table__cell table__cell--first">Variable name</td>
+            <td class="table__cell">Description</td>
+        </tr>
+        <tr class="table__row">
+            <td class="table__cell table__cell--first"><span>REPORT_TYPE</span></td>
+            <td class="table__cell">Actually, report type, that would be provided at the end. <br>
+                <span>table</span> - print results in table, only failed tests are pritend. <br>
+                <span>json</span> - print results in JSON format, only failed tests are pritend. <br>
+                <span>table_full</span>, <span>json_full</span> - prints results in table or JSON respectively, but print full info on tests passed
+            </td>
+        </tr>
+        <tr class="table__row">
+            <td class="table__cell table__cell--first"><span>VP_LOG_LEVEL</span></td>
+            <td class="table__cell"><span>voip_patrol</span> log level on the console</td>
+        </tr>
+      </table>
+
+      <h2 class="title" id="Getting_results">Results</h2>
+
+      <p class="text">As a results, you will have table like</p>
+
+      <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);">+------------------------------------+-----------------------------------------------------------+--------+------------------+
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                           Scenario </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                      Test </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Status </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">             Text </span>|
++------------------------------------+-----------------------------------------------------------+--------+------------------+
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                        01-register </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                           </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">  Scenario passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Register 88881-00001 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                       02-call-echo </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                           </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">  Scenario passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Call to 11111 (echo) </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">        03-register-wait-for-call-1 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                           </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">  Scenario passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Register 88881-00001 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                Call to ##88881 from 88882 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                   default </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">        04-register-wait-for-call-2 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                           </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">  Scenario passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Register 90002-00002 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                       Call 90001 -&gt; 90002 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                    Receive call on 90002-00002 from 90001 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">          05-immediate-call-forward </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                           </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">  Scenario passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Register 90002-00002 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                           Call from 90001 to 91002-&gt;90002 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                               Receive call on 90002-00002 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+....
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">    37-team-call-from-paused-member </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                                           </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">  Scenario passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Register 90003-20614 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Register 90001-22466 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                      Register 90002-00002 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                    Receive call on 90003-20614 and CANCEL </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">    Call canceled </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                      Call from team member 90001 -&gt; 90543 </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
+|<span class="hljs-string" style="color: rgb(162, 252, 162);">                                    </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">                    Receive call on 90002-00002 and answer </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);">   PASS </span>|<span class="hljs-string" style="color: rgb(162, 252, 162);"> Main test passed </span>|
++------------------------------------+-----------------------------------------------------------+--------+------------------+
+        All scenarios are OK!</pre>
+    <p class="text">Not really much to describe here, just read info on the console
+
+    </p>
+    </main>
+  </body>
+</html>

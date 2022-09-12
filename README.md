@@ -1,6 +1,7 @@
 [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct.svg)](https://stand-with-ukraine.pp.ua)
-
-# VOLTS
+<p align="center">
+<img src="docs/images/logo.png" alt="VOLTSLogo" width="200"/>
+</p>
 
 **Voip Open Linear Tester Suite**
 
