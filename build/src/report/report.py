@@ -46,7 +46,7 @@ def _normalize_test_name(name):
 
     return normalized_name
 
-def build_test_results(vp_report_data, d_report_data):
+def build_test_results(vp_report_data, d_report_data, m_report_data):
     """
     Function to process line-by-line data from *voip_patrol* and *database* JSONL results file
     to a dict with a structure
@@ -61,6 +61,10 @@ def build_test_results(vp_report_data, d_report_data):
         "d_error": {
             "stage": ...
             "text": ...
+        }
+        "m_status": ...
+        "m_error": {
+
         }
     }
     """
@@ -124,7 +128,7 @@ def build_test_results(vp_report_data, d_report_data):
 
                 # Status PASS at this moment means only that all tests are completed
                 if test_results[current_test]["status"] == "FAIL":
-                    test_results[current_test]["status_text"] = "Scenario failed"
+                    test_results[current_test]["status_text"] = "Scenario failed ({} of {} tasks done)".format(scenario_completed_tasks, scenario_total_tasks)
 
                     current_test = "orphaned"
                     continue
@@ -171,15 +175,16 @@ def build_test_results(vp_report_data, d_report_data):
         test_results[current_test]["tests"][test_number] = test_entity[test_number]
 
     # Add FAIL if we have tests without end's
-    for test_result_name, test_result_info in test_results.items():
+    for current_test, test_result_info in test_results.items():
         if not test_result_info.get("status"):
-            test_results[test_result_name]["status"] = "FAIL"
-            test_results[test_result_name]["status_text"] = "End action missing"
+            test_results[current_test]["status"] = "FAIL"
+            test_results[current_test]["status_text"] = "End action missing"
             continue
         if not test_result_info.get("end_time"):
-            test_results[test_result_name]["status"] = "FAIL"
-            test_results[test_result_name]["status_text"] = "End time missing"
+            test_results[current_test]["status"] = "FAIL"
+            test_results[current_test]["status_text"] = "End time missing"
 
+        test_results[current_test]["vp_status"] = test_results[current_test]["status"]
 
     # Enrich results with DB info
     for test_entity in d_report_data:
@@ -210,6 +215,41 @@ def build_test_results(vp_report_data, d_report_data):
         if not current_test_d_existing_status:
             test_results[current_test]["d_status"] = "PASS"
 
+        if test_results[current_test].get("d_status") != "PASS":
+            test_results[current_test]["status"] = "FAIL"
+            test_results[current_test]['status_text'] += " Database failed"
+
+    # Enrich results with media check info
+    for test_entity in m_report_data:
+        if not test_entity.get("scenario"):
+            continue
+
+        current_test = test_entity.get("scenario")
+        if current_test not in test_results:
+            continue
+
+        current_test_m_status = test_entity.get("status", "FAIL")
+
+        current_test_m_existing_status = test_results[current_test].get("m_status")
+        if current_test_m_status == "PASS" and current_test_m_existing_status == "PASS":
+            continue
+
+        if current_test_m_status != "PASS":
+            test_results[current_test]["m_status"] = "FAIL"
+            if "m_error" not in test_results[current_test]:
+                test_results[current_test]["m_error"] = {}
+
+            m_error_index = len(test_results[current_test]["m_error"]) + 1
+            test_results[current_test]["m_error"].update({m_error_index :test_entity.get("error")})
+            continue
+
+        if not current_test_m_existing_status:
+            test_results[current_test]["m_status"] = "PASS"
+
+        if test_results[current_test].get("m_status") != "PASS":
+            test_results[current_test]["status"] = "FAIL"
+            test_results[current_test]['status_text'] += " Media failed"
+
     return test_results
 
 
@@ -217,6 +257,7 @@ def align_test_results_with_test_list(test_results, test_list):
     '''
     Make sure report have all tests results, that was in initial test list
     '''
+    print("Test list: {}".format(test_list))
     for actual_test in test_list:
         if actual_test in test_results:
             continue
@@ -244,19 +285,24 @@ def filter_results_default(test_results):
 
     for scenario_name, scenario_details in test_results.items():
         print("Processing {}".format(scenario_name))
-        if scenario_details.get("status") == "PASS" and scenario_details.get("d_status", "PASS") == "PASS":
+        if scenario_details.get("status") == "PASS":
             continue
 
         printed_results[scenario_name] = {}
-        printed_results[scenario_name]["status"] = scenario_details.get("status")
-        printed_results[scenario_name]["status_text"] = scenario_details.get("status_text")
-        printed_results[scenario_name]["start_time"] = scenario_details.get("start_time")
-        printed_results[scenario_name]["end_time"] = scenario_details.get("end_time")
-        printed_results[scenario_name]["task_counter"] = scenario_details.get("counter")
+        if scenario_details.get("vp_status", "PASS") != "PASS":
+            printed_results[scenario_name]["vp_status"] = scenario_details.get("vp_status")
+            printed_results[scenario_name]["status_text"] = scenario_details.get("status_text")
+            printed_results[scenario_name]["start_time"] = scenario_details.get("start_time")
+            printed_results[scenario_name]["end_time"] = scenario_details.get("end_time")
+            printed_results[scenario_name]["task_counter"] = scenario_details.get("counter")
 
         if scenario_details.get("d_status", "PASS") != "PASS":
             printed_results[scenario_name]["d_status"] = scenario_details.get("d_status")
             printed_results[scenario_name]["d_error"] = scenario_details.get("d_error", "")
+
+        if scenario_details.get("m_status", "PASS") != "PASS":
+            printed_results[scenario_name]["m_status"] = scenario_details.get("m_status")
+            printed_results[scenario_name]["m_error"] = scenario_details.get("m_error", "")
 
         errors.append(scenario_name)
 
@@ -279,24 +325,23 @@ def filter_results_default(test_results):
 def print_table(print_results):
     tbl = PrettyTable()
 
-    tbl.field_names = ["Scenario", "Test", "Status" ,"Text"]
+    tbl.field_names = ["Scenario", "VoIP Patrol", "Database", "Media", "Status" ,"Text"]
 
     for scenario_name, scenario_details in print_results.items():
-        vp_status_text = scenario_details.get("status")
-        d_status_text = scenario_details.get("d_status", "PASS")
+        vp_status_text = scenario_details.get("vp_status", "N/A")
+        db_status_text = scenario_details.get("d_status", "N/A")
+        m_status_text = scenario_details.get("m_status", "N/A")
 
-        if d_status_text == "PASS":
-            status_text = vp_status_text
-        else:
-            status_text = "{}/DB:{}".format(vp_status_text, d_status_text)
+        # Getting overall status:
+        combined_status = scenario_details.get("status", "N/A")
 
-        tbl.add_row([scenario_name, "", status_text, scenario_details.get("status_text")])
+        tbl.add_row([scenario_name, vp_status_text, db_status_text, m_status_text, combined_status, scenario_details.get("status_text")])
 
         if not (type(scenario_details.get("tests")) is dict):
             continue
 
         for test_data in scenario_details.get("tests").values():
-            tbl.add_row(["", test_data.get("label"), test_data.get("result"), test_data.get("result_text")])
+            tbl.add_row(["", test_data.get("label"), "", "", test_data.get("result"), test_data.get("result_text")])
 
     tbl.align = "r"
     print(tbl)
@@ -367,8 +412,18 @@ try:
             if process_error:
                 raise Exception("Error processing database report file: {}".format(process_error))
 
+    m_report_file_name = os.environ.get("M_RESULT_FILE", "media_check.jsonl")
+    m_report_file_path = r'/opt/report/' + m_report_file_name
+    m_report_data = {}
+
+    if os.path.exists(m_report_file_path):
+        with open(m_report_file_path) as report_file:
+            process_error, m_report_data = process_jsonl_file(report_file)
+            if process_error:
+                raise Exception("Error processing media report file: {}".format(process_error))
+
     tests_list = get_tests_list()
-    test_results = build_test_results(vp_report_data, d_report_data)
+    test_results = build_test_results(vp_report_data, d_report_data, m_report_data)
 
     align_test_results_with_test_list(test_results, tests_list)
 

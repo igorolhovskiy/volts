@@ -7,6 +7,7 @@ VP_LOG_LEVEL=0
 # Timezone
 TIMEZONE=`timedatectl | grep "Time zone" | awk '{print $3}'`
 
+
 run_voip_patrol() {
     docker rm ${VP_CONTAINER_NAME} >> /dev/null 2>&1
 
@@ -49,6 +50,7 @@ run_report() {
     docker run --name=${R_CONTAINER_NAME} \
         --env VP_RESULT_FILE=`echo ${VP_RESULT_FILE}` \
         --env D_RESULT_FILE=`echo ${D_RESULT_FILE}` \
+        --env M_RESULT_FILE=`echo ${M_RESULT_FILE}` \
         --env REPORT_TYPE=`echo ${REPORT_TYPE}` \
         --env TZ=`echo ${TIMEZONE}` \
         --volume ${DIR_PREFIX}/tmp/input:/opt/scenarios/ \
@@ -74,13 +76,34 @@ run_database() {
         --volume ${DIR_PREFIX}/tmp/output:/output \
         ${D_IMAGE}
 
-    docker rm ${R_CONTAINER_NAME} >> /dev/null 2>&1
+    docker rm ${D_CONTAINER_NAME} >> /dev/null 2>&1
 }
+
+run_media() {
+    docker rm ${M_CONTAINER_NAME} >> /dev/null 2>&1
+
+    if [ ! -f "${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/media_check.xml" ]; then
+        return
+    fi
+
+    docker run --name=${M_CONTAINER_NAME} \
+        --env SCENARIO=`echo ${CURRENT_SCENARIO}` \
+        --env RESULT_FILE=`echo ${M_RESULT_FILE}` \
+        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/media_check.xml:/xml/${CURRENT_SCENARIO}.xml \
+        --volume ${DIR_PREFIX}/tmp/output:/output \
+        ${M_IMAGE}
+
+    docker rm ${M_CONTAINER_NAME} >> /dev/null 2>&1
+}
+
 
 # Script controlled variables
 DIR_PREFIX=`pwd`
 # First arument - single test to run
 SCENARIO="$1"
+
+mkdir -p tmp/input
+mkdir -p tmp/output
 
 if [ "x${SCENARIO}" != "x" ]; then
     SCENARIO=`basename ${SCENARIO} | cut -f 1 -d .`
@@ -90,8 +113,6 @@ fi
 P_IMAGE=volts_prepare:latest
 P_CONTAINER_NAME=volts_prepare
 
-mkdir -p tmp/input
-mkdir -p tmp/output
 rm -f tmp/input/scenarios.done
 run_prepare
 
@@ -112,7 +133,13 @@ VP_PORT=5060
 VP_RESULT_FILE="voip_patrol.jsonl"
 VP_LOG_LEVEL_FILE=${VP_LOG_LEVEL}
 
+# media
+M_IMAGE=volts_media:latest
+M_CONTAINER_NAME=volts_media
+M_RESULT_FILE="media_check.jsonl"
+
 rm -f ${DIR_PREFIX}/tmp/output/${D_RESULT_FILE}
+rm -f ${DIR_PREFIX}/tmp/output/${M_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${VP_RESULT_FILE}
 
 if [ -z ${SCENARIO} ]; then
@@ -122,6 +149,7 @@ if [ -z ${SCENARIO} ]; then
             run_database pre
             run_voip_patrol
             run_database post
+            run_media
         fi
     done
 else
@@ -129,6 +157,7 @@ else
     run_database pre
     run_voip_patrol
     run_database post
+    run_media
 fi
 
 # report

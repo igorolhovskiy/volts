@@ -1,0 +1,17 @@
+FROM python:3.7-buster
+LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
+
+RUN mkdir -p /opt/input && \
+    mkdir -p /opt/report && \
+    apt-get update && \
+    apt-get install -y sox
+
+COPY src/media_check /root
+
+COPY entrypoint.media.sh /docker-entrypoint.sh
+
+RUN chmod +x /docker-entrypoint.sh
+
+WORKDIR /root
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -30,7 +30,11 @@ def scenario_from_template(scenario_name, config):
 
     with open(r'{}'.format(scenario_file_path)) as template_file:
         template = env.from_string(template_file.read())
-    result_scenario = template.render(c=config["c"], a=config["a"])
+
+    # We're adding scenario (file) name to be accessible in template variables
+    current_scenario_name = scenario_name.split(".")[0]
+
+    result_scenario = template.render(c=config["c"], a=config["a"], g=config["c"], d=config["d"], scenario_name=current_scenario_name)
 
     return result_scenario
 
@@ -60,10 +64,14 @@ def separate_scenario(scenario, combined_config):
             break
 
         if child.attrib.get('type') == 'voip_patrol':
-            separate_scenarios['voip_patrol'] = get_vp_config(child)
+            separate_scenarios['voip_patrol'] = get_generic_config(child)
 
         if child.attrib.get('type') == 'database':
             separate_scenarios['database'] = get_database_config(child, combined_config)
+
+        # We're using
+        if child.attrib.get('type') == 'media_check':
+            separate_scenarios['media_check'] = get_generic_config(child)
 
     return separate_scenarios
 
@@ -87,9 +95,13 @@ def write_scenarios(name, separate_scenarios):
     if db_scenario_tree:
         db_scenario_tree.write("{}/database.xml".format(scenario_dir_path))
 
-def get_vp_config(config):
+    media_scenario_tree = separate_scenarios.get("media_check")
+    if media_scenario_tree:
+        media_scenario_tree.write("{}/media_check.xml".format(scenario_dir_path))
+
+def get_generic_config(config):
     '''
-    Take an voip_patrol config and make new root - <config> for it
+    Take an voip_patrol/media_check config and make new root - <config> for it
     '''
     if config[0].tag != 'actions':
         raise Exception('Tag is not <actions>')

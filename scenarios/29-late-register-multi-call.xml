@@ -1,0 +1,65 @@
+<!-- Register with 90002 (2 accounts) and receive a call from 90001. Accept a call on an account that registered later -->
+<config>
+    <actions>
+        <action type="register" label="Register {{ a.90002.username }}"
+            transport="{{ a.90002.transport }}"
+            account="{{ a.90002.username }}"
+            username="{{ a.90002.label }}"
+            auth_username="{{ a.90002.username }}"
+            password="{{ a.90002.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a.90002.srtp }}"
+        />
+        <action type="wait" complete="true" ms="500"/>
+        <action type="call" label="Call {{ a.90001.label }} -> {{ a.90002.label }} (2 accounts)"
+            transport="tls"
+            expected_cause_code="200"
+            caller="{{ a.90001.label }}@{{ c.domain }}"
+            callee="{{ a.90002.label }}@{{ c.domain }}"
+            from="sip:{{ a.90001.label }}@{{ c.domain }}"
+            to_uri="{{ a.90002.label }}@{{ c.domain }}"
+            max_duration="30" hangup="10"
+            auth_username="{{ a.90001.username }}"
+            password="{{ a.90001.password }}"
+            realm="{{ c.domain }}"
+            rtp_stats="true"
+            max_ring_duration="20"
+            srtp="{{ a.90001.srtp }}"
+            play="{{ c.play_file }}"
+        />
+        <action type="accept" label="Receive call on {{ a.90002.username }} (CANCEL)"
+            call_count="1"
+            match_account="{{ a.90002.username }}"
+            ring_duration="30"
+            cancel="force"
+            hangup="10"
+            code="200" reason="OK"
+            transport="{{ a.90002.transport }}"
+            play="{{ c.play_file }}"
+        />
+        <action type="wait" complete="false" ms="7000"/>
+        <!-- Just register and receive a call immediately -->
+        <action type="register" label="Register {{ a['90002-58724'].username }}"
+            transport="{{ a['90002-58724'].transport }}"
+            account="{{ a['90002-58724'].username }}"
+            username="{{ a['90002-58724'].id }}"
+            auth_username="{{ a['90002-58724'].username }}"
+            password="{{ a['90002-58724'].password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ c.domain }}"
+            expected_cause_code="200"
+            srtp="{{ a['90002-58724'].srtp }}"
+        />
+        <action type="accept" label="Receive call on {{ a['90002-58724'].username }}"
+            call_count="1"
+            match_account="{{ a['90002-58724'].username }}"
+            hangup="10"
+            code="200" reason="OK"
+            transport="{{ a['90002-58724'].transport }}"
+            play="{{ c.play_file }}"
+        />
+        <action type="wait" complete="true" ms="30000"/>
+    </actions>
+</config>

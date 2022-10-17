@@ -175,7 +175,12 @@ if scenario_root.tag != 'config':
     write_report(report_file, report)
     sys.exit(1)
 
-if scenario_root[0].tag != 'actions':
+try:
+    if scenario_root[0].tag != 'actions':
+        report['error'] = "Scenario missing <actions>, exiting..."
+        write_report(report_file, report)
+        sys.exit(1)
+except:
     report['error'] = "Scenario missing <actions>, exiting..."
     write_report(report_file, report)
     sys.exit(1)
@@ -199,7 +204,7 @@ for action in actions:
         continue
 
     db_type = db_info.attrib.get('type', 'mysql')
-    if db_type.lower() not in ['mysql', 'pgsql']:
+    if db_type.lower() not in ('mysql', 'pgsql'):
         print("At the moment only MySQL/PostgreSQL are supported, ignoring entry {}...".format(action_db_name))
         continue
 
@@ -277,7 +282,9 @@ for action in actions:
     try:
         report['error'] += preform_db_operations(db_options, db_actions)
     except Exception as e:
-        report['error'] = "[DATABASE][ERROR]: {}".format(e)
+        error_string = "[DATABASE][ERROR]: {}".format(e)
+        report['error'] = error_string
+        print(error_string)
         break
 
 write_report(report_file, report)
