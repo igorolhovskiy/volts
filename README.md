@@ -192,8 +192,9 @@ In a `sox_filter` attribute you can write a string to check some given values ag
 ```
 sox_filter="length s -ge 10; length s -le 11"
 ```
-Here we have 1 parameter - `lenght s` that should be grater than or equal 10 and less than or equal 11. `lenght s` is actually one of result parameters that are obtained by `sox <file> -n stats`.</br>
-Point, here is used not traditional `<=` style notation, but `bash` style comparsion operators. This is done due to traditional comparsion symbols (`<`,`>`) are part of XML notation</br>
+Here we have 1 parameter - `length s` that should be grater than or equal 10 and less than or equal 11. `length s` is actually one of result parameters that are obtained by `sox <file> -n stats`.</br>
+Point, here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators. 
+This is done due to traditional comparsion symbols (`<`,`>`) are part of XML notation</br>
 Getting parameters names is simple - they are converted from `sox` outputs, example:
 ```
 # sox 8000_12s.wav -n stats
@@ -202,7 +203,7 @@ Min level  -0.321594    -> 'min level'     float
 Max level   0.430359    -> 'max level'     float
 Pk lev dB      -7.32    -> 'pk lev db'     float
 RMS lev dB    -29.63    -> 'rms lev db'    float
-RMS Pk dB     -16.78    -> 'rm pk db'      float
+RMS Pk dB     -16.78    -> 'rms pk db'     float
 RMS Tr dB     -74.77    ...
 Crest factor   13.04    ...
 Flat factor     0.00    ...
