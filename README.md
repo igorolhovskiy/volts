@@ -181,10 +181,11 @@ You can analyze calls recording with various media tools. *Currently only SoX is
 Media check is also described in XML
 | Attribute | Description |
 | --- | --- |
-| `type` | Media check test to be preformed. Currently only `sox`. |
-| `file` | Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names and currently with `/output/` prefix due to container interconnection (will be fixed later), see example below for better picture |
+| `type` | Mandatory. Media check test to be preformed. Currently only `sox`. |
+| `file` | Mandatory. Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names and currently with `/output/` prefix due to container interconnection (will be fixed later), see example below for better picture |
 | `delete_after` | Do we delete file after media check? `yes`/`no`. `yes` by default |
-| `sox_filter` | Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like lenght or amplitude. See below more detailed description |
+| `print_debug` | Print debug info on file on console while testing. Usefult for adjusting `filter` parameters. `yes`/`no`. `no` by default |
+| `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like lenght or amplitude. See below more detailed description |
 
 #### SoX media check
 Within this check parameters from the `file` are collected by `sox` utility, more presice - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
@@ -193,7 +194,7 @@ In a `sox_filter` attribute you can write a string to check some given values ag
 sox_filter="length s -ge 10; length s -le 11"
 ```
 Here we have 1 parameter - `length s` that should be grater than or equal 10 and less than or equal 11. `length s` is actually one of result parameters that are obtained by `sox <file> -n stats`.</br>
-Point, here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators. 
+Point, here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators.
 This is done due to traditional comparsion symbols (`<`,`>`) are part of XML notation</br>
 Getting parameters names is simple - they are converted from `sox` outputs, example:
 ```
@@ -717,10 +718,14 @@ And now we need to populate all databases and make a call!
     <section type="media_check">
         <actions>
             <action type="sox"
-                <!-- We are testing that the outcome of recorded file is between 10 and 11 seconds -->
-                sox_filter="length s -ge 10; length s -le 11"
+                <!-- We are testing that the outcome of recorded file is between 10 and 11 seconds and checking amplitude -->
+                sox_filter="length s -ge 10; length s -le 11; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
                 <!-- File name is same as in "record" attribute in "call" action above. Now it MUST be with "/output/" path prefix -->
                 file="/output/{{ scenario_name }}.wav"
+                <!-- Printing collected info on the file -->
+                print_debug="yes"
+                <!-- Saving recorded file for something else -->
+                delete_after="no"
             />
         </actions>
     </section>

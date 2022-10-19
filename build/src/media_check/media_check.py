@@ -1,5 +1,6 @@
 import os.path
 import json
+import sys
 import xml.etree.ElementTree as ET
 from modules.SoXProcess import SoXProcess
 
@@ -86,12 +87,14 @@ for action in actions:
         continue
 
     file_delete_after = action.attrib.get('delete_after', 'true')
+    print_debug = action.attrib.get('print_debug', 'no')
 
     # SoX media processing
     if media_type_check == 'sox':
         print("Start SoX processing over {}".format(media_file))
 
         sox_filter = action.attrib.get('sox_filter', '')
+
         if len(sox_filter) == 0:
             print("<sox_filter> for media type <sox> is empty, is it for purpose?")
 
@@ -103,7 +106,12 @@ for action in actions:
         except Exception as e:
             report['error'] += "{}\n".format(e)
 
-        if file_delete_after.lower() in ['true', 'yes', '1', 'on']:
+        if print_debug.lower() in ('true', 'yes', '1', 'on'):
+            sox_file_stats_formatted = json.dumps(sox_file.get_file_stats(), indent=4)
+
+            print("[INFO] SoX data for {}:\n{}".format(media_file, sox_file_stats_formatted))
+
+        if file_delete_after.lower() in ('true', 'yes', '1', 'on'):
             try:
                 os.unlink(media_file)
             except Exception as e:

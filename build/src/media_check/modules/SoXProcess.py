@@ -121,6 +121,9 @@ class SoXProcess:
         Run sox --i <filename>, sox <filename> -n stat, sox <filename> -n stats against a <filename>
         Get all outputed data and make a combined dict of gathered parameters
         '''
+        if len(self.file_stats) > 0:
+            return
+
         if self.filename == None:
             raise Exception("Filename to process is not set")
 
@@ -172,6 +175,13 @@ class SoXProcess:
                     break
 
         self.condition_filter = result
+
+    def get_file_stats(self):
+        if len(self.file_stats) == 0:
+            self._set_file_stats()
+
+        return self.file_stats
+
 
     def apply_filter(self, filter):
         # Accepting as a value string with filter. All expressions should be TRUE to pass a test
