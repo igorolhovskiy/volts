@@ -217,12 +217,3 @@ class SoXProcess:
             return None
 
         return error_result
-
-# file_tested = '/home/samael/Documents/Work/CERN/CERNphone/functional-testing/tmp/output/51-call-echo-media-control.wav'
-
-# filter_line = 'length s -le 11'
-
-# fts = SoXProcess(file_tested)
-# result = fts.apply_filter(filter_line)
-
-# print(result)
