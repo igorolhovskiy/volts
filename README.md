@@ -167,7 +167,7 @@ So, inside `database` action you specify tables you're working with. Each `table
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We're expecting get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting get 200 code here, so REGISTER is successfull -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -231,7 +231,7 @@ All number-like values are automatically threated as numbers and you can apply `
             <action type="codec" enable="pcmu" priority="249"/>
             <action type="call" label="Call to 11111 (echo)"
                 transport="{{ a.88881.transport }}"
-                <!-- We're expecting answer here -->
+                <!-- We are expecting answer here -->
                 expected_cause_code="200"
                 caller="{{ a.88881.label }}@{{ c.domain }}"
                 <!-- Setting R-URI -->
@@ -321,7 +321,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We're expecting get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting get 200 code here, so REGISTER is successfull -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -360,7 +360,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We're expecting get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting get 200 code here, so REGISTER is successfull -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -395,7 +395,7 @@ We're deleting data from database and restoring it afterwards.
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We're expecting get 407 code here, maybe your registrar sending 401 or 403 code. So - adjust it here. -->
+                <!-- We are expecting get 407 code here, maybe your registrar sending 401 or 403 code. So - adjust it here. -->
                 expected_cause_code="407"
             />
             <action type="wait" complete="true" ms="2000"/>
