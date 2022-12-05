@@ -46,9 +46,9 @@ def _normalize_test_name(name):
 
     return normalized_name
 
-def build_test_results(vp_report_data, d_report_data, m_report_data):
+def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report_data):
     """
-    Function to process line-by-line data from *voip_patrol* and *database* JSONL results file
+    Function to process line-by-line data from (*voip_patrol* OR *sipp*) AND OPTIONALLY *database* OR/AND *media* JSONL results file
     to a dict with a structure
     "scenario_name": {
         "status": ...
@@ -66,6 +66,10 @@ def build_test_results(vp_report_data, d_report_data, m_report_data):
         "m_error": {
 
         }
+        "sipp_status":...
+        "sipp_error": {
+            ...
+        }
     }
     """
     test_results = {}
@@ -73,7 +77,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data):
 
     for test_entity in vp_report_data:
 
-        # Scenario process start
+        # Voip Patrol scenario process start
         # We got start or end of test
         if test_entity.get("scenario"):
             previous_test = current_test
@@ -186,6 +190,23 @@ def build_test_results(vp_report_data, d_report_data, m_report_data):
 
         test_results[current_test]["vp_status"] = test_results[current_test]["status"]
 
+    # FIXME - add sipp report
+    for test_entity in sipp_report_data:
+        current_test = test_entity.get('scenario')
+        if current_test in test_results:
+            continue
+
+        test_results[current_test] = {}
+        test_results[current_test]["status"] = test_entity.get('status', 'FAIL')
+        test_results[current_test]['status_text'] = "SIPP test passed"
+        test_results[current_test]['sipp_error'] = test_entity.get('error', '')
+
+        if test_results[current_test]['status'] == 'FAIL':
+            test_results[current_test]['status_text'] = "Check SIPP log"
+
+        test_results[current_test]["sipp_status"] = test_results[current_test]["status"]
+
+
     # Enrich results with DB info
     for test_entity in d_report_data:
         if not test_entity.get("scenario"):
@@ -257,7 +278,6 @@ def align_test_results_with_test_list(test_results, test_list):
     '''
     Make sure report have all tests results, that was in initial test list
     '''
-    print("Test list: {}".format(test_list))
     for actual_test in test_list:
         if actual_test in test_results:
             continue
@@ -304,6 +324,10 @@ def filter_results_default(test_results):
             printed_results[scenario_name]["m_status"] = scenario_details.get("m_status")
             printed_results[scenario_name]["m_error"] = scenario_details.get("m_error", "")
 
+        if scenario_details.get("sipp_status", "PASS") != "PASS":
+            printed_results[scenario_name]["sipp_status"] = scenario_details.get("sipp_status")
+            printed_results[scenario_name]["sipp_error"] = scenario_details.get("sipp_error", "")
+
         errors.append(scenario_name)
 
         failed_tests = {}
@@ -325,23 +349,24 @@ def filter_results_default(test_results):
 def print_table(print_results):
     tbl = PrettyTable()
 
-    tbl.field_names = ["Scenario", "VoIP Patrol", "Database", "Media", "Status" ,"Text"]
+    tbl.field_names = ["Scenario", "VoIP Patrol", "SIPP", "Database", "Media", "Status" ,"Text"]
 
     for scenario_name, scenario_details in print_results.items():
         vp_status_text = scenario_details.get("vp_status", "N/A")
         db_status_text = scenario_details.get("d_status", "N/A")
         m_status_text = scenario_details.get("m_status", "N/A")
+        sipp_status_text = scenario_details.get("sipp_status", "N/A")
 
         # Getting overall status:
         combined_status = scenario_details.get("status", "N/A")
 
-        tbl.add_row([scenario_name, vp_status_text, db_status_text, m_status_text, combined_status, scenario_details.get("status_text")])
+        tbl.add_row([scenario_name, vp_status_text, sipp_status_text, db_status_text, m_status_text, combined_status, scenario_details.get("status_text")])
 
         if not (type(scenario_details.get("tests")) is dict):
             continue
 
         for test_data in scenario_details.get("tests").values():
-            tbl.add_row(["", test_data.get("label"), "", "", test_data.get("result"), test_data.get("result_text")])
+            tbl.add_row(["", test_data.get("label"), "", "", "", test_data.get("result"), test_data.get("result_text")])
 
     tbl.align = "r"
     print(tbl)
@@ -396,11 +421,23 @@ def print_results_table_full(test_results):
 try:
     vp_report_file_name = os.environ.get("VP_RESULT_FILE", "result.jsonl")
     vp_report_file_path = r'/opt/report/' + vp_report_file_name
+    vp_report_data = {}
 
-    with open(vp_report_file_path) as report_file:
-        process_error, vp_report_data = process_jsonl_file(report_file)
-        if process_error:
-            raise Exception("Error processing voip_patrol report file: {}".format(process_error))
+    if os.path.exists(vp_report_file_path):
+        with open(vp_report_file_path) as report_file:
+            process_error, vp_report_data = process_jsonl_file(report_file)
+            if process_error:
+                raise Exception("Error processing voip_patrol report file: {}".format(process_error))
+
+    sipp_report_file_name = os.environ.get("SIPP_RESULT_FILE", "sipp.jsonl")
+    sipp_report_file_path = r'/opt/report/' + sipp_report_file_name
+    sipp_report_data = {}
+
+    if os.path.exists(sipp_report_file_path):
+        with open(sipp_report_file_path) as report_file:
+            process_error, sipp_report_data = process_jsonl_file(report_file)
+            if process_error:
+                raise Exception("Error processing sipp report file: {}".format(process_error))
 
     d_report_file_name = os.environ.get("D_RESULT_FILE", "database.jsonl")
     d_report_file_path = r'/opt/report/' + d_report_file_name
@@ -423,7 +460,7 @@ try:
                 raise Exception("Error processing media report file: {}".format(process_error))
 
     tests_list = get_tests_list()
-    test_results = build_test_results(vp_report_data, d_report_data, m_report_data)
+    test_results = build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report_data)
 
     align_test_results_with_test_list(test_results, tests_list)
 

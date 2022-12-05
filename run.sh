@@ -2,10 +2,10 @@
 # Main user controlled variables
 # Report type to provide
 REPORT_TYPE='table_full'
-# voip_patrol log level on console
-VP_LOG_LEVEL=0
+# Log level on console
+LOG_LEVEL=0
 # Timezone
-TIMEZONE=`timedatectl | grep "Time zone" | awk '{print $3}'`
+TIMEZONE=`timedatectl show --property=Timezone --value`
 
 
 run_voip_patrol() {
@@ -20,8 +20,8 @@ run_voip_patrol() {
     --env XML_CONF=`echo ${CURRENT_SCENARIO}` \
     --env PORT=`echo ${VP_PORT}` \
     --env RESULT_FILE=`echo ${VP_RESULT_FILE}` \
-    --env LOG_LEVEL=`echo ${VP_LOG_LEVEL}` \
-    --env LOG_LEVEL_FILE=`echo ${VP_LOG_LEVEL_FILE}` \
+    --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
+    --env LOG_LEVEL_FILE=`echo ${LOG_LEVEL_FILE}` \
     --env TZ=`echo ${TIMEZONE}` \
     --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/voip_patrol.xml:/xml/${CURRENT_SCENARIO}.xml \
     --volume ${DIR_PREFIX}/tmp/output:/output \
@@ -51,6 +51,7 @@ run_report() {
         --env VP_RESULT_FILE=`echo ${VP_RESULT_FILE}` \
         --env D_RESULT_FILE=`echo ${D_RESULT_FILE}` \
         --env M_RESULT_FILE=`echo ${M_RESULT_FILE}` \
+        --env SIPP_RESULT_FILE=`echo ${SIPP_RESULT_FILE}` \
         --env REPORT_TYPE=`echo ${REPORT_TYPE}` \
         --env TZ=`echo ${TIMEZONE}` \
         --volume ${DIR_PREFIX}/tmp/input:/opt/scenarios/ \
@@ -77,6 +78,24 @@ run_database() {
         ${D_IMAGE}
 
     docker rm ${D_CONTAINER_NAME} >> /dev/null 2>&1
+}
+
+run_sipp() {
+    docker rm ${SIPP_CONTAINER_NAME} >> /dev/null 2>&1
+
+    if [ ! -f "${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/sipp.xml" ]; then
+        return
+    fi
+
+    docker run --name=${SIPP_CONTAINER_NAME} \
+        --env SCENARIO=`echo ${CURRENT_SCENARIO}` \
+        --env RESULT_FILE=`echo ${SIPP_RESULT_FILE}` \
+        --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
+        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/sipp.xml:/xml/${CURRENT_SCENARIO}.xml \
+        --volume ${DIR_PREFIX}/tmp/output:/output \
+        ${SIPP_IMAGE}
+
+    docker rm ${SIPP_CONTAINER_NAME} >> /dev/null 2>&1
 }
 
 run_media() {
@@ -131,31 +150,37 @@ VP_IMAGE=volts_vp:latest
 VP_CONTAINER_NAME=volts_vp
 VP_PORT=5060
 VP_RESULT_FILE="voip_patrol.jsonl"
-VP_LOG_LEVEL_FILE=${VP_LOG_LEVEL}
+LOG_LEVEL_FILE=${LOG_LEVEL}
 
 # media
 M_IMAGE=volts_media:latest
 M_CONTAINER_NAME=volts_media
 M_RESULT_FILE="media_check.jsonl"
 
+# sipp
+SIPP_CONTAINER_NAME=volts_sipp
+SIPP_IMAGE=volts_sipp:latest
+SIPP_RESULT_FILE="sipp.jsonl"
+
 rm -f ${DIR_PREFIX}/tmp/output/${D_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${M_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${VP_RESULT_FILE}
+rm -f ${DIR_PREFIX}/tmp/output/${SIPP_RESULT_FILE}
 
 if [ -z ${SCENARIO} ]; then
     for D in ${DIR_PREFIX}/tmp/input/*; do
-        if [ -f ${D}/voip_patrol.xml ]; then
-            CURRENT_SCENARIO=`basename ${D}`
-            run_database pre
-            run_voip_patrol
-            run_database post
-            run_media
-        fi
+        CURRENT_SCENARIO=`basename ${D}`
+        run_database pre
+        run_voip_patrol
+        run_sipp
+        run_database post
+        run_media
     done
 else
     CURRENT_SCENARIO=${SCENARIO}
     run_database pre
     run_voip_patrol
+    run_sipp
     run_database post
     run_media
 fi

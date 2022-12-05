@@ -1,0 +1,32 @@
+FROM python:3.7-buster
+LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
+
+ENV SIPP_VERSION=3.6.1
+
+COPY src/sipp/requirements.txt /root/requirements.txt
+
+RUN apt-get update && \
+    apt-get install -y cmake \
+        lksctp-tools \
+        libsctp-dev \
+        libpcap-dev \
+        ssl-cert &&\
+    cd usr/src/ && \
+    wget https://github.com/SIPp/sipp/releases/download/v${SIPP_VERSION}/sipp-${SIPP_VERSION}.tar.gz && \
+    tar xvf sipp-3.6.1.tar.gz && \
+    cd sipp-${SIPP_VERSION} && \
+    cmake . -DUSE_GSL=1 -DUSE_PCAP=1 -DUSE_SSL=1 -DUSE_SCTP=1 && \
+    make -j4 && \
+    make install && \
+    make-ssl-cert generate-default-snakeoil --force-overwrite && \
+    pip install -r /root/requirements.txt && \
+    mkdir -p /xml && \
+    mkdir -p /output && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+VOLUME [ "/xml", "/output" ]
+
+COPY src/sipp/sipp.py /root/sipp.py
+COPY entrypoint.sipp.sh /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]

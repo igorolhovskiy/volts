@@ -2,7 +2,7 @@ import os
 import pathlib
 import yaml
 
-import xml.etree.ElementTree as ET
+import lxml.etree as ET
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -12,8 +12,10 @@ env = Environment(
     autoescape=select_autoescape(["xml"]),
     extensions=['jinja2_time.TimeExtension'],
 )
+
 env.datetime_format = "%Y-%m-%d %T"
 
+# Scenario processing functions
 def scenario_from_template(scenario_name, config):
     '''
     Function to make valid XML from Jinja2 template
@@ -43,9 +45,10 @@ def separate_scenario(scenario, combined_config):
     '''
     Funciton that returns dict of ET.ElementTree XML structures for voip_patrol and database config
     '''
+    parser = ET.XMLParser(strip_cdata=False, remove_comments=True)
 
     try:
-        root = ET.fromstring(scenario)
+        root = ET.fromstring(scenario, parser)
     except Exception as e:
         print("Problem processing {} scenario: {}".format(scenario ,e))
         return {}
@@ -69,9 +72,11 @@ def separate_scenario(scenario, combined_config):
         if child.attrib.get('type') == 'database':
             separate_scenarios['database'] = get_database_config(child, combined_config)
 
-        # We're using
         if child.attrib.get('type') == 'media_check':
             separate_scenarios['media_check'] = get_generic_config(child)
+
+        if child.attrib.get('type') == 'sipp':
+            separate_scenarios['sipp'] = get_generic_config(child)
 
     return separate_scenarios
 
@@ -98,6 +103,10 @@ def write_scenarios(name, separate_scenarios):
     media_scenario_tree = separate_scenarios.get("media_check")
     if media_scenario_tree:
         media_scenario_tree.write("{}/media_check.xml".format(scenario_dir_path))
+
+    sipp_scenario_tree = separate_scenarios.get("sipp")
+    if sipp_scenario_tree:
+        sipp_scenario_tree.write("{}/sipp.xml".format(scenario_dir_path))
 
 def get_generic_config(config):
     '''

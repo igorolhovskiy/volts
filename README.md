@@ -5,7 +5,7 @@
 
 **Voip Open Linear Tester Suite**
 
-Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) and [`docker`](https://www.docker.com/)</br>
+Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp)  and [`docker`](https://www.docker.com/)</br>
 Some alternative introduction to the system can be found on [DOU](https://dou.ua/forums/topic/38567/)(ukrainian)
 
 # 10'000 ft. view
@@ -18,10 +18,10 @@ Also it can record (and play, obviously) media during the call and do media chec
 It will make, receive calls and configure database. *It's not do transfers at the moment. Sorry. I don't need it*</br></br>
 
 Suite consists of 5 parts, that are running sequentially
-1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `database` and `media_check` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [jinja2_time](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
+1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `sipp`, `database` and `media_check` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [jinja2_time](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
 ---
 2. Running database scripts. Usually - put some data inside some routing or subscriber data.
-3. Running `voip_patrol` against scenario.
+3. Running `voip_patrol` or `sipp` scenario.
 4. Again running database scripts. Usually - remove data that had been put at the stage 2.
 5. Run `media_check` if necessary to analyse obtained media files
 ---
@@ -30,7 +30,7 @@ Steps 2-5 are running sequentially against scenarios files prepared at step 1. O
 # Building
 
 Suite is designed to run locally from your Linux PC or Mac (maybe). And of course, `docker` should be installed. It's up to you.</br>
-To build, just run `./build.sh`. It would build 4 `docker` images and tag em accordingly.</br>
+To build, just run `./build.sh`. It would build 5 `docker` images and tag em accordingly.</br>
 In a case if `voip_patrol` is updated, you need to rebuild it's container again, you can do it with `./build.sh -r`
 
 # Running
@@ -57,7 +57,7 @@ We suppose to configure 2 parts here. First, and most complex are
 
 ## Scenarios
 
-`VOLTS` scenarios are combined `voip_patrol`, `database` and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
+`VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database` and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
 Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to ['jinja2-time'](https://github.com/hackebrot/jinja2-time) documentation.</br>
 As you will see below, core for all type of tests are actually `voip_patrol`, others are just helpers around.
 ### Global config
@@ -122,6 +122,44 @@ To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovs
     </section>
 </config>
 ```
+### SIPP
+You can just add your existing SIPP scenarios mainly unchanged and they would be run with the following command:
+```sh
+sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
+```
+**Send an OPTIONS**
+```xml
+<config>
+    <section type="sipp">
+        <actions>
+            <action transport="{{ c.transport }}" target="{{ c.domain }}">
+                <scenario name="Options">
+                    <send>
+                        <![CDATA[
+                OPTIONS sip:check_server_health@{{ c.domain }} SIP/2.0
+                Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                Max-Forwards: 70
+                To: <sip:check_server_health@{{ c.domain }}>
+                From: sipp <sip:check_server_health@[local_ip]:[local_port]>;tag=[call_number]
+                Call-ID: [call_id]
+                CSeq: 1 OPTIONS
+                Contact: <sip:check_server_health@[local_ip]:[local_port]>
+                Accept: application/sdp
+                Content-Length: 0
+                ]]>
+                    </send>
+                    <recv response="200" timeout="200"/>
+                </scenario>
+
+            </action>
+        </actions>
+    </section>
+</config>
+```
+| Attribute | Description |
+| --- | --- |
+| transport | Actual transport SIPP will use. Values are `udp`(default), `tcp` or `tls`. |
+| target | What you usually specify as target when running standalone SIPP. If transport is TLS, if no port is pecified, `5061` is appended by default. |
 ### Database
 Database config is also done in XML, section `database`. We have 2 `stage`s of database scripts.
 | Stage | Description |
@@ -271,32 +309,32 @@ Not that much to configure here, mostly you'll be interested in setting environe
 | Variable name | Description |
 | --- | --- |
 |`REPORT_TYPE` | Actually, report type, that would be provided at the end. </br>`table` - print results in table, only failed tests are pritend. </br>`json` - print results in JSON format, only failed tests are pritend. </br>`table_full`, `json_full` - prints results in table or JSON respectively, but print full info on tests passed
-| `VP_LOG_LEVEL` | `voip_patrol` log level on the console |
+| `LOG_LEVEL` | `voip_patrol`/`sipp` log level on the console. In a case of `sipp` scenarios debug it's useful to have this value equal to 3 |
 
 # Results
 
 As a results, you will have table like this.
 ```
-+-------------------------------------+-------------------------------------------+----------+-------+--------+--------------------+
-|                            Scenario |                               VoIP Patrol | Database | Media | Status |               Text |
-+-------------------------------------+-------------------------------------------+----------+-------+--------+--------------------+
-|                         01-register |                                      PASS |      N/A |   N/A |   PASS |    Scenario passed |
-|                                     |                      Register 88881-31896 |          |       |   PASS |   Main test passed |
-|                        02-call-echo |                                      PASS |      N/A |   N/A |   PASS |    Scenario passed |
-|                                     |                      Call to 11111 (echo) |          |       |   PASS |   Main test passed |
++---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
+|                              Scenario |                                               VoIP Patrol | SIPP | Database | Media | Status |             Text |
++---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
+|                           01-register |                                                      PASS |  N/A |      N/A |   N/A |   PASS |  Scenario passed |
+|                                       |                                      Register 88881       |      |          |       |   PASS | Main test passed |
+|                          02-call-echo |                                                      PASS |  N/A |      N/A |   N/A |   PASS |  Scenario passed |
+|                                       |                                      Call to 11111 (echo) |      |          |       |   PASS | Main test passed |
+
 ....
-|             49-teams-follow-forward |                                      FAIL |     FAIL |   N/A |   FAIL |    Scenario failed |
-|                                     |                            Register 90012 |          |       |   FAIL |            No info |
-|                                     |                            Register 90013 |          |       |   FAIL |            No info |
-|                                     |                            Register 90014 |          |       |   FAIL |            No info |
-|                                     |                       Call 90011 -> 91001 |          |       |   FAIL |            No info |
-|           50-team-no-answer-forward |                                      FAIL |     FAIL |   N/A |   FAIL |    Scenario failed |
-|                                     |                      Register 90012-48730 |          |       |   FAIL |            No info |
-|                                     |                      Register 90013-76076 |          |       |   FAIL |            No info |
-|                                     |                             Call to 91001 |          |       |   FAIL |            No info |
-|          51-call-echo-media-control |                                      PASS |      N/A |  PASS |   PASS |    Scenario passed |
-|                                     |                      Call to 11111 (echo) |          |       |   PASS |   Main test passed |
-+-------------------------------------+-------------------------------------------+----------+-------+--------+--------------------+
+|            51-call-echo-media-control |                                                      PASS |  N/A |      N/A |  PASS |   PASS |  Scenario passed |
+|                                       |                                      Call to 11111 (echo) |      |          |       |   PASS | Main test passed |
+| 52-delayed-call-forward-unconditional |                                                      PASS |  N/A |     PASS |   N/A |   PASS |  Scenario passed |
+|                                       |                                      Register 90012       |      |          |       |   PASS | Main test passed |
+|                                       |                                      Register 90013       |      |          |       |   PASS | Main test passed |
+|                                       |                      Receive call on 90012 and not answer |      |          |       |   PASS |    Call canceled |
+|                                       |   Call from 90011 to 90012 (delay forward 25 sec) ->90013 |      |          |       |   PASS | Main test passed |
+|                                       |                       Receive call on 90013       finally |      |          |       |   PASS | Main test passed |
+|                53-server-check-health |                                                       N/A | PASS |      N/A |   N/A |   PASS | SIPP test passed |
++---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
+
 Scenarios ['49-teams-follow-forward', '50-team-no-answer-forward'] are failed!
 ```
 That means your system is not OK, or something need to be tuned with the tests.</br>
@@ -304,7 +342,7 @@ Not really much to describe here, just read info on the console
 
 # Scenario Examples
 Examples shown in this section can duplicate examples from the section above. For more examples, refer to the `scenarios` folder.</br>
-## Make a successful register
+### Make a successful register
  * Here we assume that account data is known to our PBX.
 ```xml
 <config>
@@ -370,7 +408,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
 </config>
 ```
 
-## Expect fail on register
+### Expect fail on register
 We're deleting data from database and restoring it afterwards.
 ```xml
 <config>
@@ -404,7 +442,7 @@ We're deleting data from database and restoring it afterwards.
 </config>
 ```
 
-## Simple call scenario
+### Simple call scenario
 Register with 1 account and make a call from `90001` to `88881`. Max wait time to answer - 15 sec, duration of connected call - 10 sec.</br>
 Point, we don't register account `90001` here, as we're not receiving a calls on it, just need to provide credentials on INVITE.</br>
 Also trick, `match_account` in `accept` perfectly links with `account` in `register`.
@@ -425,7 +463,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
             registrar="{{ c.domain }}"
             realm="{{ c.domain }}"
             expected_cause_code="200"
-            <!-- Make sure we're using SRTP on a call receive. This is done here as accounts are created before accept(answer) action -->
+            <!-- Make sure we are using SRTP on a call receive. This is done here as accounts are created before accept(answer) action -->
             srtp="{{ a.88881.srtp }}"
         />
         <action type="wait" complete="true" ms="2000"/>
@@ -446,7 +484,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
         />
         <action type="call" label="Call {{ a.90001.label }} -> {{ a.88881.label }}"
             transport="tls"
-            <!-- We're waiting for an answer -->
+            <!-- We are waiting for an answer -->
             expected_cause_code="200"
             caller="{{ a.90001.label }}@{{ c.domain }}"
             callee="{{ a.88881.label }}@{{ c.domain }}"
@@ -466,7 +504,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
     </actions>
 </config>
 ```
-## Advanced call scenario
+### Advanced call scenario
 Register with 2 accounts and call from third one, not answer on 1st and make sure we receive call on second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
 Also make sure, that on `88882` we got the call from `90001` (based on CallerID).
 ```xml
@@ -542,7 +580,7 @@ Also make sure, that on `88882` we got the call from `90001` (based on CallerID)
 </config>
 ```
 
-## Advanced call scenario - 2. Now with databases.
+### Advanced call scenario - 2. Now with databases.
 Schema - Kamailio subscriber and than we have Asterisk behind as PBX.
 
 `config.yaml`
@@ -683,7 +721,7 @@ And now we need to populate all databases and make a call!
     </section>
 </config>
 ```
-## Adding media check.
+### Adding media check.
 
 ```xml
 <!-- Call echo service and name sure receive an answer -->
@@ -722,13 +760,39 @@ And now we need to populate all databases and make a call!
                 sox_filter="length s -ge 10; length s -le 11; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
                 <!-- File name is same as in "record" attribute in "call" action above. Now it MUST be with "/output/" path prefix -->
                 file="/output/{{ scenario_name }}.wav"
-                <!-- Printing collected info on the file -->
-                print_debug="yes"
-                <!-- Saving recorded file for something else -->
-                delete_after="no"
             />
         </actions>
     </section>
 </config>
 
+```
+### Running SIPP tests
+```xml
+<config>
+    <section type="sipp">
+        <actions>
+            <action transport="{{ c.transport }}" target="{{ c.domain }}">
+                <!-- sipp {{ c.domain }}:5061 -sf scen.xml -m 1 -r 1 -t ln -tls_cert /etc/ssl/certs/ssl-cert-snakeoil.pem -tls_key /etc/ssl/private/ssl-cert-snakeoil.key -->
+                <scenario name="Options">
+                    <send>
+                        <![CDATA[
+                OPTIONS sip:check_server_health@{{ c.domain }} SIP/2.0
+                Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                Max-Forwards: 70
+                To: <sip:check_server_health@{{ c.domain }}>
+                From: sipp <sip:check_server_health@[local_ip]:[local_port]>;tag=[call_number]
+                Call-ID: [call_id]
+                CSeq: 1 OPTIONS
+                Contact: <sip:check_server_health@[local_ip]:[local_port]>
+                Accept: application/sdp
+                Content-Length: 0
+                ]]>
+                    </send>
+                    <recv response="200" timeout="200"/>
+                </scenario>
+
+            </action>
+        </actions>
+    </section>
+</config>
 ```

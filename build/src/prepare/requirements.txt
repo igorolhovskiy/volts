@@ -1,6 +1,7 @@
 arrow==1.2.2
 Jinja2==3.0.2
 jinja2-time @ git+https://github.com/igorolhovskiy/jinja2-time.git@b20560c8c75addb182b17501a3921152fc640f0a
+lxml==4.9.1
 MarkupSafe==2.0.1
 pathlib==1.0.1
 python-dateutil==2.8.2
