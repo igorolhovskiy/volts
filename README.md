@@ -350,7 +350,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
         <actions>
             <action type="register" label="Register {{ a.88881.label }}"
                 transport="{{ a.88881.transport }}"
-                <!-- Account parameter is more used in receive call on this account later -->
+                <!-- Account parameter is more used in receiving a call on this account later -->
                 account="{{ a.88881.label }}"
                 <!-- username would be a part of AOR - <sip:username@realm> -->
                 username="{{ a.88881.username }}"
@@ -359,7 +359,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We are expecting get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting to get 200 code here, so REGISTER is successfull -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -374,9 +374,9 @@ Examples shown in this section can duplicate examples from the section above. Fo
 <config>
     <section type="database">
         <actions>
-             <!-- "kamdb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below -->
+             <!-- "kamdb" here is referring to an entity in "databases" from config.yaml. "stage" is explained a bit below -->
             <action database="kamdb" stage="pre">
-                <!-- what data are we gonna insert into "subscriber" table? -->
+                <!-- what data are we gonna insert into the "subscriber" table? -->
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.88881.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
@@ -389,7 +389,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
         <actions>
             <action type="register" label="Register {{ a.88881.label }}"
                 transport="{{ a.88881.transport }}"
-                <!-- Account parameter is more used in receive call on this account later -->
+                <!-- Account parameter is more used in receiving a call on this account later -->
                 account="{{ a.88881.label }}"
                 <!-- username would be a part of AOR - <sip:username@realm> -->
                 username="{{ a.88881.username }}"
@@ -398,7 +398,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We are expecting get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting to get 200 code here, so REGISTER is successfull -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -409,7 +409,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
 ```
 
 ### Expect fail on register
-We're deleting data from database and restoring it afterwards.
+We're deleting data the from database and restoring it afterward.
 ```xml
 <config>
     <section type="database">
@@ -433,7 +433,7 @@ We're deleting data from database and restoring it afterwards.
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We are expecting get 407 code here, maybe your registrar sending 401 or 403 code. So - adjust it here. -->
+                <!-- We are expecting to get 407 code here, maybe your registrar sending 401 or 403 code. So - adjust it here. -->
                 expected_cause_code="407"
             />
             <action type="wait" complete="true" ms="2000"/>
@@ -444,12 +444,12 @@ We're deleting data from database and restoring it afterwards.
 
 ### Simple call scenario
 Register with 1 account and make a call from `90001` to `88881`. Max wait time to answer - 15 sec, duration of connected call - 10 sec.</br>
-Point, we don't register account `90001` here, as we're not receiving a calls on it, just need to provide credentials on INVITE.</br>
+Point we don't register account `90001` here, as we're not receiving calls on it, just need to provide credentials on INVITE.</br>
 Also trick, `match_account` in `accept` perfectly links with `account` in `register`.
 ```xml
 <config>
     <actions>
-        <!-- As we're using call functionality here - define list of codecs -->
+        <!-- As we're using call functionality here - define the list of codecs -->
         <action type="codec" disable="all"/>
         <action type="codec" enable="pcma" priority="250"/>
         <action type="codec" enable="pcmu" priority="249"/>
@@ -463,23 +463,23 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
             registrar="{{ c.domain }}"
             realm="{{ c.domain }}"
             expected_cause_code="200"
-            <!-- Make sure we are using SRTP on a call receive. This is done here as accounts are created before accept(answer) action -->
+            <!-- Make sure we are using SRTP on a call received. This is done here as accounts are created before accept(answer) action -->
             srtp="{{ a.88881.srtp }}"
         />
         <action type="wait" complete="true" ms="2000"/>
         <action type="accept" label="Receive call on {{ a.88881.label }}"
             <!-- This is not a load test - so only 1 call is expected -->
             call_count="1"
-            <!-- Make sure we're received a call on a previously registered account -->
+            <!-- Make sure we have received a call on a previously registered account -->
             match_account="{{ a.88881.label }}"
             <!-- Hangup in 10 seconds after answer -->
             hangup="10"
             <!-- Send back "200 OK" -->
             code="200" reason="OK"
             transport="{{ a.88881.transport }}"
-            <!-- Make sure we're using SRTP -->
+            <!-- Make sure we are using SRTP -->
             srtp="{{ a.88881.srtp }}"
-            <!-- Play some file back to gather RTCP stats in report -->
+            <!-- Play a file back to gather RTCP stats in the report -->
             play="{{ c.play_file }}"
         />
         <action type="call" label="Call {{ a.90001.label }} -> {{ a.88881.label }}"
@@ -491,7 +491,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
             from="sip:{{ a.90001.label }}@{{ c.domain }}"
             to_uri="{{ a.88881.label }}@{{ c.domain }}"
             max_duration="20" hangup="10"
-            <!-- We're specifying all auth data here for INVITE -->
+            <!-- We are specifying all auth data here for INVITE -->
             auth_username="{{ a.90001.username }}"
             password="{{ a.90001.password }}"
             realm="{{ c.domain }}"
@@ -505,7 +505,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
 </config>
 ```
 ### Advanced call scenario
-Register with 2 accounts and call from third one, not answer on 1st and make sure we receive call on second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
+Register with 2 accounts and call from he third one, not answer on 1st and make sure we receive a call on the second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
 Also make sure, that on `88882` we got the call from `90001` (based on CallerID).
 ```xml
 <config>
@@ -581,7 +581,7 @@ Also make sure, that on `88882` we got the call from `90001` (based on CallerID)
 ```
 
 ### Advanced call scenario - 2. Now with databases.
-Schema - Kamailio subscriber and than we have Asterisk behind as PBX.
+Schema - Kamailio subscriber and then we have Asterisk behind as PBX.
 
 `config.yaml`
 ```yaml
@@ -756,9 +756,9 @@ And now we need to populate all databases and make a call!
     <section type="media_check">
         <actions>
             <action type="sox"
-                <!-- We are testing that the outcome of recorded file is between 10 and 11 seconds and checking amplitude -->
+                <!-- We are testing that the outcome of the recorded file is between 10 and 11 seconds and checking amplitude -->
                 sox_filter="length s -ge 10; length s -le 11; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
-                <!-- File name is same as in "record" attribute in "call" action above. Now it MUST be with "/output/" path prefix -->
+                <!-- File name is the same as in the "record" attribute in the "call" action above. Now it MUST be with "/output/" path prefix -->
                 file="/output/{{ scenario_name }}.wav"
             />
         </actions>
