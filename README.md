@@ -10,28 +10,28 @@ Some alternative introduction to the system can be found on [DOU](https://dou.ua
 
 # 10'000 ft. view
 
-System is designed to run simple call scenarios, that you usually do with your desk phones.</br>
-Scenarios are run one by one from `scenarios` folder in alphabetical order, which could be considered as a limitation, but also allows you to reuse same accounts in a different set of tests. This stands for `Linear` in the name ;)
+The system is designed to run simple call scenarios, that you usually do with your desk phones.</br>
+Scenarios are run one by one from `scenarios` folder in alphabetical order, which could be considered a limitation, but also allows you to reuse the same accounts in a different set of tests. This stands for `Linear` in the name ;)
 So, call some destination(s) with one(or more) device(s) and control call arrival on another phone(s).</br>
-But wait, there is more. VOLTS also can integrate with your MySQL and/or PostgreSQL databases to write some data there before test and remove it after.</br>
-Also it can record (and play, obviously) media during the call and do media check of these files (currently basic via [SoX](https://sox.sourceforge.net/))</br>
-It will make, receive calls and configure database. *It's not do transfers at the moment. Sorry. I don't need it*</br></br>
+But wait, there is more. VOLTS also can integrate with your MySQL and/or PostgreSQL databases to write some data there before the test and remove it after.</br>
+Also, it can record (and play, obviously) media during the call and do media checks of these files (currently basic via [SoX](https://sox.sourceforge.net/))</br>
+It will make and receive calls and configure the database. *It's not doing transfers at the moment. Sorry. I don't need it*</br></br>
 
-Suite consists of 5 parts, that are running sequentially
+The suite consists of 5 parts, that are running sequentially
 1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `sipp`, `database` and `media_check` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [jinja2_time](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
 ---
 2. Running database scripts. Usually - put some data inside some routing or subscriber data.
 3. Running `voip_patrol` or `sipp` scenario.
-4. Again running database scripts. Usually - remove data that had been put at the stage 2.
+4. Again running database scripts. Usually - remove data that had been put at stage 2.
 5. Run `media_check` if necessary to analyse obtained media files
 ---
-6. Report - at this part we're analyzing results of previous step reading and interpreting file obtained running steps 2-5. Printing results in a desired way. Table by default.
-Steps 2-5 are running sequentially against scenarios files prepared at step 1. One at a time. Again, it's for `Linear`
+6. Report - at this part we're analyzing the results of the previous step reading and interpreting file obtained running steps 2-5. Printing results in the desired way. Table by default.
+Steps 2-5 are running sequentially against scenarios files prepared in step 1. One at a time. Again, it's for `Linear`
 # Building
 
 Suite is designed to run locally from your Linux PC or Mac (maybe). And of course, `docker` should be installed. It's up to you.</br>
 To build, just run `./build.sh`. It would build 5 `docker` images and tag em accordingly.</br>
-In a case if `voip_patrol` is updated, you need to rebuild it's container again, you can do it with `./build.sh -r`
+In a case if `voip_patrol` is updated, you need to rebuild its container again, you can do it with `./build.sh -r`
 
 # Running
 
@@ -39,7 +39,7 @@ After building, just run
 ```sh
 ./run.sh
 ```
-Simple, isn't it? This will run all scenarios found in `scenarios` folder one by one. To run single scenario, run
+Simple, isn't it? This will run all scenarios found in `scenarios` folder one by one. To run a single scenario, run
 ```sh
 ./run.sh <scenario_name>
 ```
@@ -53,19 +53,19 @@ But simply run something blindly is boring, so before this, best to do some
 
 # Configuration
 
-We suppose to configure 2 parts here. First, and most complex are
+We suppose to configure 2 parts here. First, and most complexes are
 
 ## Scenarios
 
-`VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database` and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
+`VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database`, and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
 Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to ['jinja2-time'](https://github.com/hackebrot/jinja2-time) documentation.</br>
-As you will see below, core for all type of tests are actually `voip_patrol`, others are just helpers around.
+As you will see below, the core for all type of tests are actually `voip_patrol` or `sipp`, others are just helpers around.
 ### Global config
 
 Values for templates are taken from `scenarios/config.yaml`</br>
-One thing to mention here, that vars from `global` section transforms to `c.` (for `config` or `g.` for `global`, `c.` and `.g` are equal) and from `accounts` to `a.` in templates for shorter notation.</br>
-There is special name `scenario_name` that is transforming to scenario file name stripped `.xml` extension.</br>
-Also all settings from `global` section are inherited to `accounts` section automatically, unless they are defined there explicitly.</br>
+One thing to mention here, is that vars from `global` section transform to `c.` (for `config` or `g.` for `global`, `c.` and `.g` are equal) and from `accounts` to `a.` in templates for shorter notation.</br>
+There is a special name `scenario_name` that is transforming to a scenario file name stripped `.xml` extension.</br>
+Also, all settings from `global` section are inherited to the `accounts` section automatically unless they are defined there explicitly.</br>
 
 `config.yaml`
 ```yaml
@@ -104,7 +104,7 @@ To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovs
         <actions>
             <action type="register" label="Register {{ a.88881.label }}"
                 transport="{{ a.88881.transport }}"
-                <!-- Account parameter is more used in receive call on this account later -->
+                <!-- Account parameter is more used in receiving calls on this account later -->
                 account="{{ a.88881.label }}"
                 <!-- username would be a part of AOR - <sip:username@realm> -->
                 username="{{ a.88881.username }}"
@@ -113,7 +113,7 @@ To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovs
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We are expecting get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting to get 200 code here, so REGISTER is successful -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -159,31 +159,31 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 | Attribute | Description |
 | --- | --- |
 | transport | Actual transport SIPP will use. Values are `udp`(default), `tcp` or `tls`. |
-| target | What you usually specify as target when running standalone SIPP. If transport is TLS, if no port is pecified, `5061` is appended by default. |
+| target | What you usually specify as target when running standalone SIPP. If transport is TLS and no port is specified, `5061` is appended by default. |
 ### Database
 Database config is also done in XML, section `database`. We have 2 `stage`s of database scripts.
 | Stage | Description |
 | --- | --- |
-| `pre` | Lauched before running `voip_patrol`. Usually stage to put some accounts data, routing, etc. |
+| `pre` | Launched before running `voip_patrol`. Usually stage to put some accounts data, routing, etc. |
 | `post` | Obviously, running after `voip_patrol`. For cleanup data inserted in `pre` stage. |
 
 
-So, inside `database` action you specify tables you're working with. Each `table` secton have 4 attributes.
+So, inside the `database` action you specify the tables you're working with. Each `table` section has 4 attributes.
 | Attribute | Description |
 | --- | --- |
-| `name` | Actually name of table we're working with. |
-| `type` | Could be `insert`, `replace` and `delete`. Forming actually `INSERT`, `REPLACE` and `DELETE` SQL statements for database. |
-| `continue_on_error` | Optional. Em.. ignore errors on preformed actions and continue no matter what. By default database actions will be stopped after encountering first error. |
-| `cleanup_after_test` | Optional. Allows you not to write explicit `post` stage for your `insert` types. Will automatically form `delete` type on `post` stage for all `insert` (but not `replace`) that were declared on `pre` stage |
-**Make a register with database**
+| `name` | Actually name of the table we're working with. |
+| `type` | Could be `insert`, `replace` and `delete`. Forming actual `INSERT`, `REPLACE` and `DELETE` SQL statements for the database. |
+| `continue_on_error` | Optional. Em.. ignore errors on performed actions and continue no matter what. By default database actions will be stopped after encountering the first error. |
+| `cleanup_after_test` | Optional. Allows you not to write an explicit `post` stage for your `insert` types. Will automatically form `delete` type on `post` stage for all `insert` (but not `replace`) that were declared on `pre` stage |
+**Make a register with the database**
 ```xml
 <!-- Test simple register -->
 <config>
     <section type="database">
         <actions>
-             <!-- "kamdb" here is referring to entity in "databases" from config.yaml. -->
+             <!-- "kamdb" here is referring to an entity in "databases" from config.yaml. -->
             <action database="kamdb" stage="pre">
-                <!-- what data are we gonna insert into "subscriber" table? -->
+                <!-- what data are we gonna insert into the "subscriber" table? -->
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.88881.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
@@ -196,7 +196,7 @@ So, inside `database` action you specify tables you're working with. Each `table
         <actions>
             <action type="register" label="Register {{ a.88881.label }}"
                 transport="{{ a.88881.transport }}"
-                <!-- Account parameter is more used in receive call on this account later -->
+                <!-- Account parameter is more used in receiving calls on this account later -->
                 account="{{ a.88881.label }}"
                 <!-- username would be a part of AOR - <sip:username@realm> -->
                 username="{{ a.88881.username }}"
@@ -205,7 +205,7 @@ So, inside `database` action you specify tables you're working with. Each `table
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We are expecting get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting to get 200 code here, so REGISTER is successful -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -219,22 +219,22 @@ You can analyze calls recording with various media tools. *Currently only SoX is
 Media check is also described in XML
 | Attribute | Description |
 | --- | --- |
-| `type` | Mandatory. Media check test to be preformed. Currently only `sox`. |
-| `file` | Mandatory. Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names and currently with `/output/` prefix due to container interconnection (will be fixed later), see example below for better picture |
+| `type` | Mandatory. Media check test to be performed. Currently only `sox`. |
+| `file` | Mandatory. Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names and currently with `/output/` prefix due to container interconnection (will be fixed later), see the example below for a better picture |
 | `delete_after` | Do we delete file after media check? `yes`/`no`. `yes` by default |
-| `print_debug` | Print debug info on file on console while testing. Usefult for adjusting `filter` parameters. `yes`/`no`. `no` by default |
-| `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like lenght or amplitude. See below more detailed description |
+| `print_debug` | Print debug info on file on the console while testing. Useful for adjusting `filter` parameters. `yes`/`no`. `no` by default |
+| `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
 
 #### SoX media check
-Within this check parameters from the `file` are collected by `sox` utility, more presice - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
-In a `sox_filter` attribute you can write a string to check some given values against collected parameters. All filters expressions should be true to test pass. Best to be explained on the example</br>
+Within this check parameters from the `file` are collected by `sox` utility, more precisely - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
+In a `sox_filter` attribute you can write a string to check some given values against collected parameters. All filter expressions should be true to test pass. Best to be explained on the example</br>
 ```
 sox_filter="length s -ge 10; length s -le 11"
 ```
-Here we have 1 parameter - `length s` that should be grater than or equal 10 and less than or equal 11. `length s` is actually one of result parameters that are obtained by `sox <file> -n stats`.</br>
-Point, here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators.
-This is done due to traditional comparsion symbols (`<`,`>`) are part of XML notation</br>
-Getting parameters names is simple - they are converted from `sox` outputs, example:
+Here we have 1 parameter - `length s` that should be greater than or equal 10 and less than or equal 11. `length s` is one of the result parameters that are obtained by `sox <file> -n stats`.</br>
+Point here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators.
+This is done due to traditional comparison symbols (`<`,`>`) are part of XML notation</br>
+Getting parameters names is simple - they are converted from `sox` outputs, for example:
 ```
 # sox 8000_12s.wav -n stats
 DC offset  -0.000078    -> 'dc offset'     float
@@ -253,12 +253,12 @@ Length s      12.034    -> 'length s'      float
 Scale max   1.000000    ...
 Window s       0.050    ...
 ```
-Here all parameter names are lowercased. One more example with the data above:
+Here all parameter names are lowercase. One more example with the data above:
 ```
 sox_filter="length s -ge 11; crest factor -lt 10; bit-depth -eq 15/16"
 ```
-All number-like values are automatically threated as numbers and you can apply `-lt`, `-ge` type of comparsions.</br></br>
-**Make a call to echo number and analyse outcome**
+All number-like values are automatically treated as numbers and you can apply `-lt`, `-ge` type of comparisons.</br></br>
+**Make a call to echo number and analyze the outcome**
 ```xml
 <!-- Call echo service and name sure receive an answer -->
 <config>
@@ -283,7 +283,7 @@ All number-like values are automatically threated as numbers and you can apply `
                 play="{{ c.play_file }}"
                 rtp_stats="true"
                 srtp="{{ a.88881.srtp }}"
-                <!-- We heed to record file on answer. To analyze it below now it MUST be with "/output/" path prefix -->
+                <!-- We heed to record file on an answer. To analyze it below now it MUST be with "/output/" path prefix -->
                 record="/output/{{ scenario_name }}.wav"
             />
             <action type="wait" complete="true" ms="30000"/>
@@ -293,7 +293,7 @@ All number-like values are automatically threated as numbers and you can apply `
         <actions>
             <action type="sox"
                 sox_filter="length s -ge 10; length s -le 11"
-                <!-- File name is same as in "record" attribute in "call" action above. Now it MUST be with "/output/" path prefix -->
+                <!-- File name is the same as in the "record" attribute in the "call" action above. Now it MUST be with "/output/" path prefix -->
                 file="/output/{{ scenario_name }}.wav"
             />
         </actions>
@@ -305,15 +305,15 @@ All number-like values are automatically threated as numbers and you can apply `
 
 ## `run.sh` script
 
-Not that much to configure here, mostly you'll be interested in setting environement variables at the start of the script
+Not that much to configure here, mostly you'll be interested in setting environment variables at the start of the script
 | Variable name | Description |
 | --- | --- |
-|`REPORT_TYPE` | Actually, report type, that would be provided at the end. </br>`table` - print results in table, only failed tests are pritend. </br>`json` - print results in JSON format, only failed tests are pritend. </br>`table_full`, `json_full` - prints results in table or JSON respectively, but print full info on tests passed
-| `LOG_LEVEL` | `voip_patrol`/`sipp` log level on the console. In a case of `sipp` scenarios debug it's useful to have this value equal to 3 |
+|`REPORT_TYPE` | Actually, the report type, that would be provided at the end. </br>`table` - print results in a table, only failed tests are printed. </br>`json` - print results in JSON format, only failed tests are printed. </br>`table_full`, `json_full` - print results in table or JSON respectively, but print full info on tests passed
+| `LOG_LEVEL` | `voip_patrol`/`sipp` log level on the console. In the case of the `sipp` scenarios debug it's useful to have this value equal to 3 |
 
 # Results
 
-As a results, you will have table like this.
+As a result, you will have a table like this.
 ```
 +---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
 |                              Scenario |                                               VoIP Patrol | SIPP | Database | Media | Status |             Text |
