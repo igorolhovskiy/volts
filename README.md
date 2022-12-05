@@ -6,7 +6,7 @@
 **Voip Open Linear Tester Suite**
 
 Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp)  and [`docker`](https://www.docker.com/)</br>
-Some alternative introduction to the system can be found on [DOU](https://dou.ua/forums/topic/38567/)(ukrainian)
+Some alternative introduction to the system can be found on [DOU](https://dou.ua/forums/topic/38567/)(ukrainian) or in my talk at [Kamailio World 2022](https://youtu.be/9NGu5LpGSMc?t=7727).
 
 # 10'000 ft. view
 
