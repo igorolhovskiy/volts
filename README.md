@@ -796,3 +796,60 @@ And now we need to populate all databases and make a call!
     </section>
 </config>
 ```
+Adding some auth to SIPP
+```xml
+<config>
+    <section type="sipp">
+        <actions>
+            <action transport="{{ c.transport }}" target="{{ c.domain }}">
+            ...
+                <recv response="407" auth="true">
+                </recv>
+
+                <send>
+                <![CDATA[
+
+                    ACK sip:[service]@[remote_ip]:[remote_port] SIP/2.0
+                    Via: SIP/2.0/[transport] [local_ip]:[local_port]
+                    From: {{ a.88881.label }} <sip:{{ a.88881.label }}@[local_ip]:[local_port]>;tag=[call_number]
+                    To: sut <sip:[service]@[remote_ip]:[remote_port]>[peer_tag_param]
+                    Call-ID: [call_id]
+                    CSeq: 1 ACK
+                    Contact: sip:{{ a.88881.label }}@[local_ip]:[local_port]
+                    Max-Forwards: 70
+                    Content-Length: 0
+
+                ]]>
+                </send>
+
+                <send retrans="500">
+                <![CDATA[
+
+                    INVITE sip:[service]@[remote_ip]:[remote_port] SIP/2.0
+                    Via: SIP/2.0/[transport] [local_ip]:[local_port]
+                    From: {{ a.88881.label }} <sip:{{ a.88881.label }}@[local_ip]:[local_port]>;tag=[call_number]
+                    To: sut <sip:[service]@[remote_ip]:[remote_port]>
+                    Call-ID: [call_id]
+                    CSeq: 2 INVITE
+                    Contact: sip:{{ a.88881.label }}@[local_ip]:[local_port]
+                    [authentication username={{ a.88881.username }} password={{ a.88881.password }}]
+                    Max-Forwards: 70
+                    Content-Type: application/sdp
+                    Content-Length: [len]
+
+                    v=0
+                    o=user1 53655765 2353687637 IN IP[local_ip_type] [local_ip]
+                    s=-
+                    t=0 0
+                    c=IN IP[media_ip_type] [media_ip]
+                    m=audio [media_port] RTP/AVP 0
+                    a=rtpmap:0 PCMU/8000
+
+                ]]>
+                </send>
+                ...
+            </action>
+        </actions>
+    </section>
+</config>
+```
