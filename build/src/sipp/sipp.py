@@ -50,6 +50,9 @@ def call_sipp(scenario_path, target, transport, log_level):
         tmp_media_port,
         '-i',
         ip_address,
+        '-trace_err',
+        '-error_file',
+        'sipp_err.log'
     ]
     if transport == 'tcp':
         cmd.extend(['-t', 't1', target])
@@ -76,6 +79,10 @@ def call_sipp(scenario_path, target, transport, log_level):
         print("SIPP out data:\n{}".format(out.decode()))
     if log_level > 2:
         print("SIPP err data:\n{}".format(err.decode()))
+
+        if os.path.exists("sipp_err.log"):
+            with open("sipp_err.log", 'r') as f:
+                print(f.read())
 
     if return_code == 0:
         return ""

@@ -1,0 +1,170 @@
+<config>
+    <section type="sipp">
+        <actions>
+            <action transport="{{ c.transport }}" target="{{ c.domain }}">
+                <scenario name="UAC INVITE with Auth and SDP">
+                  <send retrans="500">
+                    <![CDATA[
+                      INVITE sip:echo@{{ c.domain }}:[remote_port] SIP/2.0
+                      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                      From: <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                      To: <sip:echo@{{ c.domain }}:[remote_port]>
+                      Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                      CSeq: [cseq] INVITE
+                      Contact: <sip:{{ a.88881.label }}@[local_ip]:[local_port];transport=[transport]>
+                      Max-Forwards: 70
+                      User-Agent: VOLTS Tester UAC
+                      Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, SUBSCRIBE, NOTIFY, INFO, PUBLISH
+                      Content-Type: application/sdp
+                      Content-Length: [len]
+
+                      v=0
+                      o=88881 1447 718 IN IP[local_ip_type] [local_ip]
+                      s=Talk
+                      c=IN IP[local_ip_type] [local_ip]
+                      t=0 0
+                      a=ice-pwd:c74ff29b84b564f27b545380
+                      a=ice-ufrag:dc686241
+                      a=rtcp-xr:rcvr-rtt=all:10000 stat-summary=loss,dup,jitt,TTL voip-metrics
+                      a=record:off
+                      m=audio 8000 RTP/SAVPF 96 97
+                      a=rtpmap:96 opus/48000/2
+                      a=fmtp:96 useinbandfec=1
+                      a=rtpmap:97 telephone-event/48000
+                      a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:oCWxnys6XAdb5V+t6psFL533l4o3hD+IWEjL2FEc
+                      a=crypto:2 AES_CM_128_HMAC_SHA1_32 inline:+aiO6MD4Z+S4bLvEvZXGiwqkRh+gVirEldj/2QYW
+                      a=crypto:3 AES_256_CM_HMAC_SHA1_80 inline:bdoRjQZgEPqYHOBD7eSuw+bKH0Ettr3QE2We6fpLZMGjHoQi/UYU6o4Ng14gmQ==
+                      a=crypto:4 AES_256_CM_HMAC_SHA1_32 inline:fIXz3uWDQTZMt5C1tyxLK1RZp62pJLo0GKFGRemM/AE/nw/e77xHpBzaWrvS0g==
+                      a=crypto:5 AEAD_AES_128_GCM inline:MGFcwc3QVFqpwhod5gZJssFeO2f3S1CAtXcbnQ==
+                      a=crypto:6 AEAD_AES_256_GCM inline:OtEP4z//9Ei/0rvRE0baJtcobEstxqJh8uZUBFpl/32/0uLR83p2zpwY46s=
+                      a=candidate:1 1 UDP 2130706303 [local_ip] 8000 typ host
+                      a=candidate:1 2 UDP 2130706302 [local_ip] 8001 typ host
+                      a=rtcp-fb:* trr-int 1000
+                      a=rtcp-fb:* ccm tmmbr
+
+                    ]]>
+                  </send>
+
+                  <recv response="100" optional="true" rrs="true"></recv>
+
+                  <recv response="407" auth="true"></recv>
+
+                  <send>
+                    <![CDATA[
+                      ACK sip:echo@{{ c.domain }} SIP/2.0
+                      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                      From: <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                      [last_To]
+                      Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                      CSeq: [cseq] ACK
+                      Contact: <sip:{{ a.88881.label }}@[local_ip]:[local_port];transport=[transport]>
+                      Max-Forwards: 70
+                      Subject: Performance Test
+                      User-Agent: VOLTS Tester UAC
+                      Content-Length: 0
+                    ]]>
+                  </send>
+
+                  <send retrans="500">
+                    <![CDATA[
+                      INVITE sip:echo@{{ c.domain }}:[remote_port] SIP/2.0
+                      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                      From: <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                      To: <sip:echo@{{ c.domain }}:[remote_port]>
+                      Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                      CSeq: [cseq] INVITE
+                      Contact: <sip:{{ a.88881.label }}@[local_ip]:[local_port];transport=[transport]>
+                      Max-Forwards: 70
+                      User-Agent: VOLTS Tester UAC
+                      Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, SUBSCRIBE, NOTIFY, INFO, PUBLISH
+                      [authentication username={{ a.88881.username }} password={{ a.88881.password }}]
+                      Content-Type: application/sdp
+                      Content-Length: [len]
+
+                      v=0
+                      o=88881 1447 718 IN IP[local_ip_type] [local_ip]
+                      s=Talk
+                      c=IN IP[local_ip_type] [local_ip]
+                      t=0 0
+                      a=ice-pwd:c74ff29b84b564f27b545380
+                      a=ice-ufrag:dc686241
+                      a=rtcp-xr:rcvr-rtt=all:10000 stat-summary=loss,dup,jitt,TTL voip-metrics
+                      a=record:off
+                      m=audio 8000 RTP/SAVPF 96 97
+                      a=rtpmap:96 opus/48000/2
+                      a=fmtp:96 useinbandfec=1
+                      a=rtpmap:97 telephone-event/48000
+                      a=crypto:1 AES_CM_128_HMAC_SHA1_80 inline:oCWxnys6XAdb5V+t6psFL533l4o3hD+IWEjL2FEc
+                      a=crypto:2 AES_CM_128_HMAC_SHA1_32 inline:+aiO6MD4Z+S4bLvEvZXGiwqkRh+gVirEldj/2QYW
+                      a=crypto:3 AES_256_CM_HMAC_SHA1_80 inline:bdoRjQZgEPqYHOBD7eSuw+bKH0Ettr3QE2We6fpLZMGjHoQi/UYU6o4Ng14gmQ==
+                      a=crypto:4 AES_256_CM_HMAC_SHA1_32 inline:fIXz3uWDQTZMt5C1tyxLK1RZp62pJLo0GKFGRemM/AE/nw/e77xHpBzaWrvS0g==
+                      a=crypto:5 AEAD_AES_128_GCM inline:MGFcwc3QVFqpwhod5gZJssFeO2f3S1CAtXcbnQ==
+                      a=crypto:6 AEAD_AES_256_GCM inline:OtEP4z//9Ei/0rvRE0baJtcobEstxqJh8uZUBFpl/32/0uLR83p2zpwY46s=
+                      a=candidate:1 1 UDP 2130706303 [local_ip] 8000 typ host
+                      a=candidate:1 2 UDP 2130706302 [local_ip] 8001 typ host
+                      a=rtcp-fb:* trr-int 1000
+                      a=rtcp-fb:* ccm tmmbr
+                    ]]>
+                  </send>
+
+                  <recv response="100" optional="true"></recv>
+                  <recv response="180" optional="true"></recv>
+                  <recv response="183" optional="true"></recv>
+
+                  <recv response="200" rrs="true">
+                    <action>
+                      <ereg regexp=".*" search_in="hdr" header="Record-Route:" occurence="1" assign_to="1"/>
+                      <ereg regexp=".*" search_in="hdr" header="Record-Route:" occurence="2" assign_to="2"/>
+                    </action>
+                  </recv>
+
+                  <send>
+                    <![CDATA[
+                      ACK [next_url] SIP/2.0
+                      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                      Route: [$2]
+                      Route: [$1]
+                      [last_From]
+                      [last_To]
+                      Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                      CSeq: [cseq] ACK
+                      Contact: <sip:{{ a.88881.label }}@[local_ip]:[local_port];transport=[transport]>
+                      Max-Forwards: 70
+                      User-Agent: VOLTS Tester UAC
+                      Content-Length: 0
+                    ]]>
+                  </send>
+
+                  <pause milliseconds="5000"/>
+
+                  <send retrans="500">
+                    <![CDATA[
+                      BYE [next_url] SIP/2.0
+                      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                      From: <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                      Route: [$2]
+                      Route: [$1]
+                      [last_To]
+                      Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                      CSeq: [cseq] BYE
+                      Contact: <sip:{{ a.88881.label }}@[local_ip]:[local_port];transport=[transport]>
+                      Max-Forwards: 70
+                      User-Agent: VOLTS Tester UAC
+                      Content-Length: 0
+                    ]]>
+                  </send>
+
+                  <recv response="200" crlf="true"></recv>
+
+                  <!-- definition of the response time repartition table (unit is ms)   -->
+                  <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200"/>
+
+                  <!-- definition of the call length repartition table (unit is ms)     -->
+                  <CallLengthRepartition value="10, 50, 100, 500, 1000, 5000, 10000"/>
+
+                </scenario>
+
+            </action>
+        </actions>
+    </section>
+</config>
