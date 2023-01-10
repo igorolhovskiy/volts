@@ -271,7 +271,10 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
             test_results[current_test]["status"] = "FAIL"
             test_results[current_test]['status_text'] += " Media failed"
 
-    return test_results
+    # Sort test results
+    sorted_test_results = {key: val for key, val in sorted(test_results.items(), key = lambda ele: ele[0])}
+
+    return sorted_test_results
 
 
 def align_test_results_with_test_list(test_results, test_list):
