@@ -3,6 +3,10 @@
 <img src="docs/images/logo.png" alt="VOLTSLogo" width="200"/>
 </p>
 
+
+Plays with a websocket
+https://nickvsnetworking.com/kamailio-bytes-stateless-sip-proxy/ - ?
+
 **Voip Open Linear Tester Suite**
 
 Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp)  and [`docker`](https://www.docker.com/)</br>
