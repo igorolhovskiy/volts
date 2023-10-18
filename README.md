@@ -6,7 +6,7 @@
 **Voip Open Linear Tester Suite**
 
 Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp)  and [`docker`](https://www.docker.com/)</br>
-Some alternative introduction to the system can be found on [DOU](https://dou.ua/forums/topic/38567/)(ukrainian) or in my talk at [Kamailio World 2022](https://youtu.be/9NGu5LpGSMc?t=7727).
+Some alternative introduction to the system can be found on [DOU](https://dou.ua/forums/topic/38567/) (ukrainian) or in my talk at [Kamailio World 2022](https://youtu.be/9NGu5LpGSMc?t=7727).
 
 # 10'000 ft. view
 
@@ -18,7 +18,7 @@ Also, it can record (and play, obviously) media during the call and do media che
 It will make and receive calls and configure the database. *It's not doing transfers at the moment. Sorry. I don't need it*</br></br>
 
 The suite consists of 5 parts, that are running sequentially
-1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `sipp`, `database` and `media_check` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [jinja2_time](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
+1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `sipp`, `database` and `media_check` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [`jinja2_time`](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
 ---
 2. Running database scripts. Usually - put some data inside some routing or subscriber data.
 3. Running `voip_patrol` or `sipp` scenario.
@@ -58,7 +58,7 @@ We suppose to configure 2 parts here. First, and most complexes are
 ## Scenarios
 
 `VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database`, and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
-Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to ['jinja2-time'](https://github.com/hackebrot/jinja2-time) documentation.</br>
+Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to [`jinja2-time`](https://github.com/hackebrot/jinja2-time) documentation.</br>
 As you will see below, the core for all type of tests are actually `voip_patrol` or `sipp`, others are just helpers around.
 ### Global config
 
@@ -96,7 +96,7 @@ accounts:
     password:       'SuperSecretPass3'
 ```
 ### VoIP - patrol
-To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol/voip_patrol) config, but here follows some basic example to show the idea of the templating.</br></br>
+To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) config, but here follows some basic example to show the idea of the templating.</br></br>
 **Make a register**
 ```xml
 <config>
