@@ -257,6 +257,8 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
 
         if current_test_m_status != "PASS":
             test_results[current_test]["m_status"] = "FAIL"
+            test_results[current_test]["status"] = "FAIL"
+            test_results[current_test]['status_text'] += " Media failed"
             if "m_error" not in test_results[current_test]:
                 test_results[current_test]["m_error"] = {}
 
