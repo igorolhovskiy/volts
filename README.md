@@ -175,6 +175,7 @@ So, inside the `database` action you specify the tables you're working with. Eac
 | `type` | Could be `insert`, `replace` and `delete`. Forming actual `INSERT`, `REPLACE` and `DELETE` SQL statements for the database. |
 | `continue_on_error` | Optional. Em.. ignore errors on performed actions and continue no matter what. By default database actions will be stopped after encountering the first error. |
 | `cleanup_after_test` | Optional. Allows you not to write an explicit `post` stage for your `insert` types. Will automatically form `delete` type on `post` stage for all `insert` (but not `replace`) that were declared on `pre` stage |
+
 **Make a register with the database**
 ```xml
 <!-- Test simple register -->
