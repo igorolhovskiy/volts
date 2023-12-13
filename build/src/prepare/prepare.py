@@ -115,7 +115,7 @@ def get_generic_config(config):
     if config[0].tag != 'actions':
         raise Exception('Tag is not <actions>')
 
-    root = ET.Element('config')
+    root = ET.Element('config', attrib=None, nsmap=None)
     root.append(config[0])
 
     return ET.ElementTree(root)
@@ -133,7 +133,7 @@ def get_database_config(config, combined_config):
     # First - check if we have databases section to enrich
     db_common_config = combined_config.get('d')
     if not db_common_config:
-        root = ET.Element('config')
+        root = ET.Element('config', attrib=None, nsmap=None)
         root.append(actions)
 
         return ET.ElementTree(root)
@@ -148,11 +148,11 @@ def get_database_config(config, combined_config):
         if not current_db_config:
             continue
 
-        current_db_info = ET.SubElement(action, 'info')
+        current_db_info = ET.SubElement(action, 'info', attrib=None, nsmap=None)
         for k, v in current_db_config.items():
             current_db_info.attrib[k] = v
 
-    root = ET.Element('config')
+    root = ET.Element('config', attrib=None, nsmap=None)
     root.append(actions)
 
     return ET.ElementTree(root)
@@ -192,8 +192,9 @@ try:
     default_srtp = global_config.get('srtp', 'none')
 
     account_config = config.get('accounts')
+    account_config_mixed = {}
+    
     if account_config:
-        account_config_mixed = {}
         for key in account_config:
             if not isinstance(key, (int, str)):
                 continue

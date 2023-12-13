@@ -1,3 +1,4 @@
+import os
 import os.path
 import json
 import sys
@@ -29,6 +30,12 @@ def write_report(filename, report):
 scenario_name = os.environ.get("SCENARIO")
 
 report_file = os.environ.get("RESULT_FILE", "media_check.jsonl")
+
+# Log level for the console
+try:
+    log_level = int(os.environ.get("LOG_LEVEL", "1"))
+except:
+    log_level = 1
 
 scenario_file = '/xml/{}.xml'.format(scenario_name)
 if not os.path.exists(scenario_file):
@@ -91,7 +98,8 @@ for action in actions:
 
     # SoX media processing
     if media_type_check == 'sox':
-        print("Start SoX processing over {}".format(media_file))
+        if log_level >= 1:
+            print("Start SoX processing over {}".format(media_file))
 
         sox_filter = action.attrib.get('sox_filter', '')
 
@@ -103,13 +111,13 @@ for action in actions:
             sox_result = sox_file.apply_filter(sox_filter)
             if sox_result is not None:
                 raise Exception(sox_result)
+
+            if print_debug.lower() in ('true', 'yes', '1', 'on') or log_level >= 3:
+                sox_file_stats_formatted = json.dumps(sox_file.get_file_stats(), indent=4)
+
+                print("[INFO] SoX data for {}:\n{}".format(media_file, sox_file_stats_formatted))
         except Exception as e:
             report['error'] += "{}\n".format(e)
-
-        if print_debug.lower() in ('true', 'yes', '1', 'on'):
-            sox_file_stats_formatted = json.dumps(sox_file.get_file_stats(), indent=4)
-
-            print("[INFO] SoX data for {}:\n{}".format(media_file, sox_file_stats_formatted))
 
         if file_delete_after.lower() in ('true', 'yes', '1', 'on'):
             try:

@@ -137,6 +137,17 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
                     current_test = "orphaned"
                     continue
 
+                # Check Total tasks value
+                try:
+                    scenario_total_tasks_int = int(scenario_total_tasks)
+                    if scenario_total_tasks_int <= 0:
+                        test_results[current_test]["status"] = "FAIL"
+                        test_results[current_test]["status_text"] = "0 total tasks"
+                except ValueError:
+                    test_results[current_test]["status"] = "FAIL"
+                    test_results[current_test]["status_text"] = "Total tasks value <{}> is incorrect".format(scenario_total_tasks)
+
+
                 if test_results[current_test].get("tests"):
                     for test_result_line in test_results[current_test]["tests"].values():
                         test_failed_count = 0

@@ -200,6 +200,7 @@ class SoXProcess:
 
             if comparsion_function is None:
                 print("SoX Process warning: operator <{}> is not supported".format(operator))
+                continue
 
             if comparsion_function(value):
                 continue

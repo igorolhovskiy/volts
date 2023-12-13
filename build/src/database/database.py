@@ -61,7 +61,7 @@ def get_db_connection(db_options):
             write_timeout=10
         )
 
-def preform_db_operations(db_options, db_actions):
+def preform_db_operations(db_options, db_actions, log_level = 1):
     '''
     Actually preform operations on database.
     Point, we're committing every table action.
@@ -73,7 +73,8 @@ def preform_db_operations(db_options, db_actions):
 
     for db_action in db_actions:
         for table, table_actions in db_action.items():
-            print("Preforming <{}> action on table <{}>...".format(table_actions['type'].upper(), table))
+            if log_level >= 1:
+                print("Preforming <{}> action on table <{}>...".format(table_actions['type'].upper(), table))
 
             sql_stmt = None
             if table_actions['type'] == 'replace':
@@ -149,6 +150,11 @@ def write_report(filename, report):
 scenario_name = os.environ.get("SCENARIO")
 # sage can be pre - running before voip_patrol to populate database and post - to clean up.
 scenario_stage = os.environ.get("STAGE", "pre")
+# Log level for the console
+try:
+    log_level = int(os.environ.get("LOG_LEVEL", "1"))
+except:
+    log_level = 1
 
 report_file = os.environ.get("RESULT_FILE", "database.jsonl")
 
@@ -195,7 +201,8 @@ for action in actions:
     action_db_name = action.attrib.get('database', 'default')
     action_stage = action.attrib.get('stage', 'pre')
 
-    print("Processing actions on database <{}>...".format(action_db_name))
+    if log_level >= 1:
+        print("Processing actions on database <{}>...".format(action_db_name))
 
     # info section is holding database credentials by design
     db_info = action.find('info')
@@ -280,7 +287,7 @@ for action in actions:
         db_actions.append(db_action)
 
     try:
-        report['error'] += preform_db_operations(db_options, db_actions)
+        report['error'] += preform_db_operations(db_options, db_actions, log_level)
     except Exception as e:
         error_string = "[DATABASE][ERROR]: {}".format(e)
         report['error'] = error_string
