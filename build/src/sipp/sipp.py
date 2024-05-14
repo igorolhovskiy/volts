@@ -19,7 +19,7 @@ def write_report(filename, report):
     report_line = json.dumps(report)
     report_line += "\n"
 
-    filename_path = "/output/{}".format(filename)
+    filename_path = f"/output/{filename}"
     try:
         f_report = open(filename_path, "a")
         f_report.seek(0, 2)
@@ -33,7 +33,7 @@ def call_sipp(scenario_path, target, transport, log_level):
     Here we're calling sipp
     '''
     if not os.path.exists(scenario_path):
-        return "Scenario file '{}' absent...\n".format(scenario_path)
+        return f"Scenario file <{scenario_path}> is absent...\n"
 
     tmp_media_port = str(random.randrange(50000, 60000))
     ip_address = socket.gethostbyname(socket.gethostname())
@@ -60,7 +60,7 @@ def call_sipp(scenario_path, target, transport, log_level):
         cmd.extend(['-t', 'l1', '-tls_cert', '/etc/ssl/certs/ssl-cert-snakeoil.pem', '-tls_key', '/etc/ssl/private/ssl-cert-snakeoil.key'])
         # Check for port in a case of TLS transport
         if len(target.split(':')) == 1:
-            cmd.extend(["{}:5061".format(target)])
+            cmd.extend([f"{target}:5061"])
 
     # Run SIPP
     sipp_p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -74,11 +74,11 @@ def call_sipp(scenario_path, target, transport, log_level):
     out, err = sipp_p.communicate()
 
     if log_level > 0:
-        print("SIPP exit code:{}".format(return_code))
+        print(f"SIPP exit code:{return_code}")
     if log_level > 1:
-        print("SIPP out data:\n{}".format(out.decode()))
+        print(f"SIPP out data:\n{out.decode()}")
     if log_level > 2:
-        print("SIPP err data:\n{}".format(err.decode()))
+        print(f"SIPP err data:\n{err.decode()}")
 
         if os.path.exists("sipp_err.log"):
             with open("sipp_err.log", 'r') as f:
@@ -87,16 +87,16 @@ def call_sipp(scenario_path, target, transport, log_level):
     if return_code == 0:
         return ""
 
-    return "SIPP exited abnormally: {}\nOut: {}\nErr: {}".format(return_code, out, err)
+    return f"SIPP exited abnormally: {return_code}\nOut: {out}\nErr: {err}"
 
 ### SCRIPT START
 scenario_name = os.environ.get("SCENARIO")
 report_file = os.environ.get("RESULT_FILE", "sipp.jsonl")
 log_level = int(os.environ.get("LOG_LEVEL", "0"))
 
-scenario_file = '/xml/{}.xml'.format(scenario_name)
+scenario_file = f"/xml/{scenario_name}.xml"
 if not os.path.exists(scenario_file):
-    print("SIPP scenario file is absent for {}, skipping...".format(scenario_name))
+    print(f"SIPP scenario file is absent for {scenario_name}, skipping...")
     sys.exit(0)
 
 report = {}
@@ -109,7 +109,7 @@ try:
     tree = ET.parse(scenario_file, parser=parser)
     scenario_root = tree.getroot()
 except Exception as e:
-    report['error'] = "Problem parsing {}".format(e)
+    report['error'] = f"Problem parsing {e}"
     write_report(report_file, report)
     sys.exit(1)
 
@@ -128,7 +128,7 @@ try:
         write_report(report_file, report)
         sys.exit(1)
 except Exception as e:
-    report['error'] = "Scenario missing <actions> ({}), exiting...".format(e)
+    report['error'] = f"Scenario missing <actions> ({e}), exiting..."
     write_report(report_file, report)
     sys.exit(1)
 
@@ -141,18 +141,19 @@ if target is None:
     sys.exit(1)
 
 if transport not in ['tcp', 'udp', 'tls']:
-    report['error'] = "SIPP invalid transport: {}".format(transport)
+    report['error'] = f"SIPP invalid transport: {transport}"
     write_report(report_file, report)
     sys.exit(1)
 
 if log_level > 1:
-    print("SIPP file:\n{}".format(ET.tostring(sipp_scenario).decode()))
+    sipp_file = ET.tostring(sipp_scenario).decode()
+    print(f"SIPP generated file:\n{sipp_file}")
 
 sipp_scenario_file = '/root/sipp.xml'
 try:
     sipp_scenario.write(sipp_scenario_file, xml_declaration=True, encoding="us-ascii")
 except Exception as e:
-    report['error'] = "Problem writing {}".format(sipp_scenario_file)
+    report['error'] = f"Problem writing {sipp_scenario_file}"
     write_report(report_file, report)
     sys.exit(1)
 

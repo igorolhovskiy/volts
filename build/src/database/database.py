@@ -5,28 +5,28 @@
 #
 # <config>
 #     <actions>
-#         <action database="kamdb" stage="pre">
+#         <action database="sippproxydb" stage="pre">
 #             <table cleanup_after_test="true" name="subscriber" type="insert">
 #                 <field name="username" value="11111" />
 #                 <field name="domain" value="mypbx.com" />
 #                 <field name="ha1" value="b509095666231146d2650fe1cc1265ec" />
 #                 <field name="password" value="dummy_data_here" />
 #             </table>
-#             <info base="kamailio"
-#                 host="my_kamailio.host"
+#             <info base="sipproxy"
+#                 host="my_sipproxy.host"
 #                 password="superSecretDBPassword"
 #                 type="mysql"
-#                 user="kamailiorw" />
+#                 user="sipproxyrw" />
 #         </action>
 #     </actions>
 # </config>
 #
 # on stage "pre"
-# USE kamailio;
+# USE sipproxy;
 # INSERT INTO subscriber (username, domain, ha1, password) VALUES ("11111", "mypbx.com", "b509095666231146d2650fe1cc1265ec", "dummy_data_here");
 #
 # on stage "post"
-# USE kamailio;
+# USE sipproxy;
 # DELETE FROM subscriber WHERE username = "11111" AND domain = "mypbx.com" AND ha1 = "b509095666231146d2650fe1cc1265ec" AND password = "dummy_data_here";
 #
 # That simple
@@ -68,13 +68,16 @@ def preform_db_operations(db_options, db_actions, log_level = 1):
     If we have continue_on_error != true, than next table statements are not proceeded
     '''
     db_conn = get_db_connection(db_options)
+    if not db_conn:
+        return f"Cannot connect to database due to database module {db_options.get('type')} is not available"
+
     db_cursor = db_conn.cursor()
     error = ""
 
     for db_action in db_actions:
         for table, table_actions in db_action.items():
             if log_level >= 1:
-                print("Preforming <{}> action on table <{}>...".format(table_actions['type'].upper(), table))
+                print(f"Preforming <{table_actions['type'].upper()}> action on table <{table}>...")
 
             sql_stmt = None
             if table_actions['type'] == 'replace':
@@ -87,21 +90,20 @@ def preform_db_operations(db_options, db_actions, log_level = 1):
             if sql_stmt is None:
                 continue
 
-            # print("Executing {} with {}".format(sql_stmt, table_actions['value']))
             try:
                 db_cursor.execute(sql_stmt, table_actions['value'])
                 db_conn.commit()
             except Exception as e:
-                error += "[DATABASE][ERROR]:{} ".format(e)
+                error += f"[DATABASE][ERROR]:{e} "
                 if table_actions['continue_on_error']:
                     continue
-                raise Exception("[DATABASE][ERROR]: Problem with action {} on table {}: {}".format(sql_stmt, table, e))
+                raise Exception(f"[DATABASE][ERROR]: Problem with action {sql_stmt} on table {table}: {e}")
 
     db_conn.close()
     return error
 
 def form_insert_statement(table, fields):
-    sql  = "INSERT INTO {} (".format(table)
+    sql  = f"INSERT INTO {table} ("
     sql += ",".join(fields)
     sql += ") VALUES ("
     sql += ",".join(['%s'] * len(fields))
@@ -110,7 +112,7 @@ def form_insert_statement(table, fields):
     return sql
 
 def form_replace_statement(table, fields):
-    sql  = "REPLACE INTO {} (".format(table)
+    sql  = f"REPLACE INTO {table} ("
     sql += ",".join(fields)
     sql += ") VALUES ("
     sql += ",".join(['%s'] * len(fields))
@@ -119,9 +121,9 @@ def form_replace_statement(table, fields):
     return sql
 
 def form_delete_statement(table, fields):
-    sql = "DELETE FROM {} WHERE ".format(table)
+    sql = f"DELETE FROM {table} WHERE "
     for field in fields:
-        sql += "{} = %s AND ".format(field)
+        sql += f"{field} = %s AND "
     sql += "1 = 1"
 
     return sql
@@ -136,7 +138,7 @@ def write_report(filename, report):
     report_line = json.dumps(report)
     report_line += "\n"
 
-    filename_path = "/output/{}".format(filename)
+    filename_path = f"/output/{filename}"
     try:
         f_report = open(filename_path, "a")
         f_report.seek(0, 2)
@@ -158,9 +160,9 @@ except:
 
 report_file = os.environ.get("RESULT_FILE", "database.jsonl")
 
-scenario_file = '/xml/{}.xml'.format(scenario_name)
+scenario_file = f"/xml/{scenario_name}.xml"
 if not os.path.exists(scenario_file):
-    print("Database scenario file is absent for {}/{}, skipping...".format(scenario_name, scenario_stage))
+    print(f"Database scenario file is absent for {scenario_name}/{scenario_stage}, skipping...")
     sys.exit(0)
 
 report = {}
@@ -172,7 +174,7 @@ try:
     tree = ET.parse(scenario_file)
     scenario_root = tree.getroot()
 except Exception as e:
-    report['error'] = "Problem parsing {}".format(e)
+    report['error'] = f"Problem parsing {e}"
     write_report(report_file, report)
     sys.exit(1)
 
@@ -195,30 +197,30 @@ actions = scenario_root[0]
 
 for action in actions:
     if action.tag != 'action':
-        print("Tag {} is not supported, skipping ...".format(action.tag))
+        print(f"Tag {action.tag} is not supported, skipping ...")
         continue
 
     action_db_name = action.attrib.get('database', 'default')
     action_stage = action.attrib.get('stage', 'pre')
 
     if log_level >= 1:
-        print("Processing actions on database <{}>...".format(action_db_name))
+        print(f"Processing actions on database <{action_db_name}>...")
 
     # info section is holding database credentials by design
     db_info = action.find('info')
     if db_info is None:
-        print("No info on database is found, ignoring entry {}...".format(action_db_name))
+        print(f"No info on database is found, ignoring entry {action_db_name}...")
         continue
 
     db_type = db_info.attrib.get('type', 'mysql')
     if db_type.lower() not in ('mysql', 'pgsql'):
-        print("At the moment only MySQL/PostgreSQL are supported, ignoring entry {}...".format(action_db_name))
+        print(f"At the moment only MySQL/PostgreSQL are supported, ignoring entry {action_db_name}...")
         continue
 
     # On which database are we preforming actions.
     db_base = db_info.attrib.get('base')
     if not db_base :
-        print("Database for actions is not specified, ignoring entry {}...".format(action_db_name))
+        print(f"Database for actions is not specified, ignoring entry {action_db_name}...")
         continue
 
     db_options = {
@@ -243,7 +245,7 @@ for action in actions:
         table_action = table.attrib.get('type', 'none')
 
         if table_action not in ['replace', 'insert', 'delete']:
-            print("Type of action is only 'replace', 'insert' and 'delete', ignoring entry on {}...".format(table_name))
+            print(f"Type of action is only 'replace', 'insert' and 'delete', ignoring entry on {table_name}...")
             continue
 
         cleanup_after_test = table.attrib.get('cleanup_after_test', 'false')
@@ -289,7 +291,7 @@ for action in actions:
     try:
         report['error'] += preform_db_operations(db_options, db_actions, log_level)
     except Exception as e:
-        error_string = "[DATABASE][ERROR]: {}".format(e)
+        error_string = f"[DATABASE][ERROR]: {e}"
         report['error'] = error_string
         print(error_string)
         break

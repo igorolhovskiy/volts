@@ -1,0 +1,11 @@
+<action type="register" label="Register {{ a[endpoint].username }}"
+    transport="{{ a[endpoint].transport }}"
+    account="{{ a[endpoint].username }}"
+    username="{{ a[endpoint].label }}"
+    auth_username="{{ a[endpoint].username }}"
+    password="{{ a[endpoint].password }}"
+    registrar="{{ c.domain }}"
+    realm="{{ c.domain }}"
+    expected_cause_code="200"
+    srtp="{{ a[endpoint].srtp }}"
+/>

@@ -13,7 +13,7 @@ class SoXProcess:
     def __init__(self, filename):
 
         if not os.path.exists(filename):
-            raise Exception("File {} not found".format(filename))
+            raise Exception(f"File {filename} not found")
 
         self.filename = filename
 
@@ -29,7 +29,7 @@ class SoXProcess:
         sox_cmd_out, sox_cmd_err = sox_cmd.communicate()
 
         if sox_cmd.returncode != 0:
-            raise Exception("Sox command exited abnormally: {}\nOut: {}\nErr: {}".format(sox_cmd.returncode, sox_cmd_out, sox_cmd_err))
+            raise Exception(f"Sox command exited abnormally: {sox_cmd.returncode}\nOut: {sox_cmd_out}\nErr: {sox_cmd_err}")
 
         return sox_cmd_out if use_std_out else sox_cmd_err
 
@@ -149,7 +149,7 @@ class SoXProcess:
         param = " ".join(param.split()).lower()
 
         # Operator would be '__eq__', '__ge__', etc...
-        operator = "__{}__".format(operator[1:])
+        operator = f"__{operator[1:]}__"
 
         value = single_condition[operator_position + 3:]
         value = value.strip()
@@ -193,13 +193,13 @@ class SoXProcess:
         for condition in self.condition_filter:
             parameter, operator, value = condition
             if parameter not in self.file_stats:
-                print("SoX Process warning: parameter <{}> not present in file stats".format(parameter))
+                print(f"SoX Process warning: parameter <{parameter}> not present in file stats")
                 continue
             file_stats_value = self.file_stats[parameter]
             comparsion_function = getattr(file_stats_value, operator, None)
 
             if comparsion_function is None:
-                print("SoX Process warning: operator <{}> is not supported".format(operator))
+                print(f"SoX Process warning: operator <{operator}> is not supported")
                 continue
 
             if comparsion_function(value):

@@ -15,7 +15,7 @@ def process_jsonl_file(file):
         try:
             processed_data.append(json.loads(line))
         except ValueError as e:
-            error = "Line {} is not a JSON: {}".format(line, e)
+            error = f"Line {line} is not a JSON: {e}"
 
     return error, processed_data
 
@@ -82,7 +82,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
         if test_entity.get("scenario"):
             previous_test = current_test
 
-            current_test_scenario_info = test_entity.get("scenario")
+            current_test_scenario_info = test_entity["scenario"]
 
             current_test = current_test_scenario_info.get("name", "orphaned")
             current_test = _normalize_test_name(current_test)
@@ -128,11 +128,11 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
 
                 test_results[current_test]["end_time"] = current_test_scenario_info.get("time")
                 test_results[current_test]["status"] = current_test_scenario_info.get("result", "FAIL")
-                test_results[current_test]["counter"] = "{}/{}".format(scenario_completed_tasks, scenario_total_tasks)
+                test_results[current_test]["counter"] = f"{scenario_completed_tasks}/{scenario_total_tasks}"
 
                 # Status PASS at this moment means only that all tests are completed
                 if test_results[current_test]["status"] == "FAIL":
-                    test_results[current_test]["status_text"] = "Scenario failed ({} of {} tasks done)".format(scenario_completed_tasks, scenario_total_tasks)
+                    test_results[current_test]["status_text"] = f"Scenario failed ({scenario_completed_tasks} of {scenario_total_tasks} tasks done)"
 
                     current_test = "orphaned"
                     continue
@@ -145,7 +145,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
                         test_results[current_test]["status_text"] = "0 total tasks"
                 except ValueError:
                     test_results[current_test]["status"] = "FAIL"
-                    test_results[current_test]["status_text"] = "Total tasks value <{}> is incorrect".format(scenario_total_tasks)
+                    test_results[current_test]["status_text"] = f"Total tasks value <{scenario_total_tasks}> is incorrect"
 
 
                 if test_results[current_test].get("tests"):
@@ -154,7 +154,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
                         if test_result_line.get("result") == "FAIL":
                             test_failed_count += 1
                             test_results[current_test]["status"] = "FAIL"
-                            test_results[current_test]["status_text"] = "{} tests has failed".format(test_failed_count)
+                            test_results[current_test]["status_text"] = f"{test_failed_count} tests has failed"
 
                 if test_results[current_test]["status"] != "FAIL":
                     test_results[current_test]["status"] = "PASS"
@@ -168,7 +168,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
                 test_results[current_test] = {}
 
             test_results[current_test]["status"] = "FAIL"
-            test_results[current_test]["status_text"] = "Problem with scenario, unknown state"
+            test_results[current_test]["status_text"] = "Problem with this scenario, unknown state"
 
             current_test = "orphaned"
             continue
@@ -201,7 +201,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
 
         test_results[current_test]["vp_status"] = test_results[current_test]["status"]
 
-    # FIXME - add sipp report
+    # Add results for SIPP scenarios
     for test_entity in sipp_report_data:
         current_test = test_entity.get('scenario')
         if current_test in test_results:
@@ -216,7 +216,6 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
             test_results[current_test]['status_text'] = "Check SIPP log"
 
         test_results[current_test]["sipp_status"] = test_results[current_test]["status"]
-
 
     # Enrich results with DB info
     for test_entity in d_report_data:
@@ -240,8 +239,11 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
                 test_results[current_test]["d_error"]["stage"] = ""
                 test_results[current_test]["d_error"]["text"] = ""
 
-            test_results[current_test]["d_error"]["stage"] += "{} ".format(test_entity.get("stage", "err"))
-            test_results[current_test]["d_error"]["text"] += "{} ".format(test_entity.get("error", "err"))
+            stage_name_txt = test_entity.get("stage", "err")
+            stage_err_txt = test_entity.get("error", "err")
+
+            test_results[current_test]["d_error"]["stage"] += f"{stage_name_txt} "
+            test_results[current_test]["d_error"]["text"] += f"{stage_err_txt} "
             continue
 
         if not current_test_d_existing_status:
@@ -320,7 +322,7 @@ def filter_results_default(test_results):
 
 
     for scenario_name, scenario_details in test_results.items():
-        print("Processing {}".format(scenario_name))
+        print(f"Processing {scenario_name}")
         if scenario_details.get("status") == "PASS":
             continue
 
@@ -393,7 +395,7 @@ def print_results_json_full(test_results):
     print(json.dumps(printed_results, sort_keys=True, indent=4))
 
     if failed_scenarios is not None:
-        print("Scenarios {} are failed!".format(failed_scenarios))
+        print(f"Scenarios {failed_scenarios} are failed!")
         return
 
     print("All scenarios are OK!")
@@ -405,18 +407,18 @@ def print_results_table_default(test_results):
 
     if failed_scenarios is not None:
         print_table(printed_results)
-        print("Scenarios {} are failed!".format(failed_scenarios))
+        print(f"Scenarios {failed_scenarios} are failed!")
         return
 
     print("All scenarios are OK!")
 
 def print_results_json_default(test_results):
 
-    error, printed_results = filter_results_default(test_results)
+    failed_scenarios, printed_results = filter_results_default(test_results)
 
-    if error is not None:
+    if failed_scenarios is not None:
         print(json.dumps(printed_results, sort_keys=True, indent=4))
-        print("Scenarios {} are failed!".format(error))
+        print(f"Scenarios {failed_scenarios} are failed!")
         return
 
     print("All scenarios are OK!")
@@ -427,7 +429,7 @@ def print_results_table_full(test_results):
     print_table(test_results)
 
     if failed_scenarios is not None:
-        print("Scenarios {} are failed!".format(failed_scenarios))
+        print(f"Scenarios {failed_scenarios} are failed!")
         return
 
     print("All scenarios are OK!")
@@ -443,7 +445,7 @@ try:
         with open(vp_report_file_path) as report_file:
             process_error, vp_report_data = process_jsonl_file(report_file)
             if process_error:
-                raise Exception("Error processing voip_patrol report file: {}".format(process_error))
+                raise Exception(f"Error processing voip_patrol report file: {process_error}")
 
     sipp_report_file_name = os.environ.get("SIPP_RESULT_FILE", "sipp.jsonl")
     sipp_report_file_path = r'/opt/report/' + sipp_report_file_name
@@ -453,7 +455,7 @@ try:
         with open(sipp_report_file_path) as report_file:
             process_error, sipp_report_data = process_jsonl_file(report_file)
             if process_error:
-                raise Exception("Error processing sipp report file: {}".format(process_error))
+                raise Exception(f"Error processing sipp report file: {process_error}")
 
     d_report_file_name = os.environ.get("D_RESULT_FILE", "database.jsonl")
     d_report_file_path = r'/opt/report/' + d_report_file_name
@@ -463,7 +465,7 @@ try:
         with open(d_report_file_path) as report_file:
             process_error, d_report_data = process_jsonl_file(report_file)
             if process_error:
-                raise Exception("Error processing database report file: {}".format(process_error))
+                raise Exception(f"Error processing database report file: {process_error}")
 
     m_report_file_name = os.environ.get("M_RESULT_FILE", "media_check.jsonl")
     m_report_file_path = r'/opt/report/' + m_report_file_name
@@ -473,7 +475,7 @@ try:
         with open(m_report_file_path) as report_file:
             process_error, m_report_data = process_jsonl_file(report_file)
             if process_error:
-                raise Exception("Error processing media report file: {}".format(process_error))
+                raise Exception(f"Error processing media report file: {process_error}")
 
     tests_list = get_tests_list()
     test_results = build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report_data)
@@ -492,4 +494,4 @@ try:
         print_results_json_default(test_results)
 
 except Exception as e:
-    print("Error processing report: {}".format(e))
+    print(f"Error processing report: {e}")

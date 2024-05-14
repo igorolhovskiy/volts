@@ -17,7 +17,7 @@ def write_report(filename, report):
     report_line = json.dumps(report)
     report_line += "\n"
 
-    filename_path = "/output/{}".format(filename)
+    filename_path = f"/output/{filename}"
     try:
         f_report = open(filename_path, "a")
         f_report.seek(0, 2)
@@ -37,9 +37,9 @@ try:
 except:
     log_level = 1
 
-scenario_file = '/xml/{}.xml'.format(scenario_name)
+scenario_file = f"/xml/{scenario_name}.xml"
 if not os.path.exists(scenario_file):
-    print("Media check scenario file is absent for {}, skipping...".format(scenario_name))
+    print(f"Media check scenario file is absent for {scenario_name}, skipping...")
     sys.exit(0)
 
 report = {}
@@ -50,7 +50,7 @@ try:
     tree = ET.parse(scenario_file)
     scenario_root = tree.getroot()
 except Exception as e:
-    report['error'] = "Problem parsing {}".format(e)
+    report['error'] = f"Problem parsing {e}"
     write_report(report_file, report)
     sys.exit(1)
 
@@ -73,7 +73,7 @@ actions = scenario_root[0]
 
 for action in actions:
     if action.tag != 'action':
-        print("Tag {} is not supported, skipping ...".format(action.tag))
+        print(f"Tag {action.tag} is not supported, skipping ...")
         continue
 
     media_type_check = action.attrib.get('type')
@@ -90,7 +90,7 @@ for action in actions:
     media_type_check = media_type_check.lower()
 
     if media_type_check not in ('sox'):
-        print("Media check {} is not supported, currently supported: sox".format(media_type_check))
+        print(f"Media check {media_type_check} is not supported, currently supported: sox")
         continue
 
     file_delete_after = action.attrib.get('delete_after', 'true')
@@ -99,7 +99,7 @@ for action in actions:
     # SoX media processing
     if media_type_check == 'sox':
         if log_level >= 1:
-            print("Start SoX processing over {}".format(media_file))
+            print(f"Start SoX processing over {media_file}")
 
         sox_filter = action.attrib.get('sox_filter', '')
 
@@ -108,21 +108,23 @@ for action in actions:
 
         try:
             sox_file = SoXProcess(media_file)
-            sox_result = sox_file.apply_filter(sox_filter)
-            if sox_result is not None:
-                raise Exception(sox_result)
 
             if print_debug.lower() in ('true', 'yes', '1', 'on') or log_level >= 3:
                 sox_file_stats_formatted = json.dumps(sox_file.get_file_stats(), indent=4)
 
-                print("[INFO] SoX data for {}:\n{}".format(media_file, sox_file_stats_formatted))
+                print(f"[INFO] SoX data for {media_file}:\n{sox_file_stats_formatted}")
+
+            sox_result = sox_file.apply_filter(sox_filter)
+            if sox_result is not None:
+                raise Exception(sox_result)
+
         except Exception as e:
-            report['error'] += "{}\n".format(e)
+            report['error'] += f"{e}\n"
 
         if file_delete_after.lower() in ('true', 'yes', '1', 'on'):
             try:
                 os.unlink(media_file)
             except Exception as e:
-                report['error'] += "{}\n".format(e)
+                report['error'] += f"{e}\n"
 
 write_report(report_file, report)

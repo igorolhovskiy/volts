@@ -13,14 +13,14 @@ env = Environment(
     extensions=['jinja2_time.TimeExtension'],
 )
 
-env.datetime_format = "%Y-%m-%d %T"
+env.datetime_format = "%Y-%m-%d %T"  # type: ignore (Ignoring as pylance not getting extension of jinja2_time.TimeExtension)
 
 # Scenario processing functions
 def scenario_from_template(scenario_name, config):
     '''
     Function to make valid XML from Jinja2 template
     '''
-    scenario_file_path = "/opt/input/{}".format(scenario_name)
+    scenario_file_path = f"/opt/input/{scenario_name}"
 
     if not os.path.exists(scenario_file_path):
         scenario_file_path += ".xml"
@@ -50,11 +50,11 @@ def separate_scenario(scenario, combined_config):
     try:
         root = ET.fromstring(scenario, parser)
     except Exception as e:
-        print("Problem processing {} scenario: {}".format(scenario ,e))
+        print(f"Problem processing {scenario} scenario: {e}")
         return {}
 
     if root.tag != 'config':
-        print('Root element is not <config> in {}'.format(scenario))
+        print(f"Root element is not <config> in {scenario}")
         return {}
 
     separate_scenarios = {}
@@ -63,11 +63,11 @@ def separate_scenario(scenario, combined_config):
 
         # For backward compatibility
         if child.tag == 'actions':
-            separate_scenarios['voip_patrol'] = ET.ElementTree(root)
+            separate_scenarios['voip_patrol'] = get_vp_config(root)
             break
 
         if child.attrib.get('type') == 'voip_patrol':
-            separate_scenarios['voip_patrol'] = get_generic_config(child)
+            separate_scenarios['voip_patrol'] = get_vp_config(child)
 
         if child.attrib.get('type') == 'database':
             separate_scenarios['database'] = get_database_config(child, combined_config)
@@ -88,35 +88,60 @@ def write_scenarios(name, separate_scenarios):
 
     # Strip the ".XML"
     scenario_name = name.split(".")[0]
-    scenario_dir_path = '/opt/output/{}'.format(scenario_name)
+    scenario_dir_path = f"/opt/output/{scenario_name}"
     if not os.path.exists(scenario_dir_path):
         os.mkdir(scenario_dir_path)
 
     vp_scenario_tree = separate_scenarios.get("voip_patrol")
     if vp_scenario_tree:
-        vp_scenario_tree.write("{}/voip_patrol.xml".format(scenario_dir_path))
+        vp_scenario_tree.write(f"{scenario_dir_path}/voip_patrol.xml")
 
     db_scenario_tree = separate_scenarios.get("database")
     if db_scenario_tree:
-        db_scenario_tree.write("{}/database.xml".format(scenario_dir_path))
+        db_scenario_tree.write(f"{scenario_dir_path}/database.xml")
 
     media_scenario_tree = separate_scenarios.get("media_check")
     if media_scenario_tree:
-        media_scenario_tree.write("{}/media_check.xml".format(scenario_dir_path))
+        media_scenario_tree.write(f"{scenario_dir_path}/media_check.xml")
 
     sipp_scenario_tree = separate_scenarios.get("sipp")
     if sipp_scenario_tree:
-        sipp_scenario_tree.write("{}/sipp.xml".format(scenario_dir_path))
+        sipp_scenario_tree.write(f"{scenario_dir_path}/sipp.xml")
 
 def get_generic_config(config):
     '''
-    Take an voip_patrol/media_check config and make new root - <config> for it
+    Take an media_check config and make new root - <config> for it
     '''
     if config[0].tag != 'actions':
         raise Exception('Tag is not <actions>')
 
-    root = ET.Element('config', attrib=None, nsmap=None)
+    root = ET.Element('config' , attrib=None, nsmap=None)
     root.append(config[0])
+
+    return ET.ElementTree(root)
+
+
+def get_vp_config(config):
+    '''
+    Take an voip_patrol/media_check config and make new root - <config> for it
+    Also replace check transport for wss and replace it with tls and add outbound proxy in this case
+    '''
+    if config[0].tag != 'actions':
+        raise Exception('Tag is not <actions>')
+
+    actions = config[0]
+
+    # Relpace wss transport with tls
+    for elem in actions:
+        if elem.tag == 'action' and elem.attrib.get('transport') == 'wss':
+            elem.set('transport', 'tls')
+            # Set outbound proxy where it's supported
+            if elem.attrib.get('type') in ['call', 'register']:
+                proxy_tls_port = os.environ.get('OPENSIPS_TLS_PORT', 6051)
+                elem.set('proxy', f"127.0.0.1:{proxy_tls_port}")
+
+    root = ET.Element('config' , attrib=None, nsmap=None)
+    root.append(actions)
 
     return ET.ElementTree(root)
 
@@ -157,43 +182,58 @@ def get_database_config(config, combined_config):
 
     return ET.ElementTree(root)
 
-def process_scenario(name, combined_config):
+def process_scenario(name, combined_config, log_level):
     '''
     Here we taking template and making valid voip_patrol and database scenarios.
     '''
-    print("Processing {}".format(name))
-
     result_xml = scenario_from_template(name, combined_config)
     if result_xml is None:
         return
+    
+    if log_level >= 1:
+        print(f"Processing {name}")
+
     separate_scenarios = separate_scenario(result_xml, combined_config)
     write_scenarios(name, separate_scenarios)
 
-
 # Main script starting
+
+# Log level for the console
+try:
+    log_level = int(os.environ.get("LOG_LEVEL", "1"))
+except:
+    log_level = 1
+
 try:
 
-    print("Starting preparing template(s)...")
+    if log_level >= 1:
+        print("Starting preparing template(s)...")
 
     try:
-        os.remove('/opt/output/scenarios.done')
+        os.remove("/opt/output/scenarios.done")
     except:
         pass
 
-    with open(r'/opt/input/config.yaml') as config_file:
-        print("Reading config.yaml...")
+    with open(r"/opt/input/config.yaml") as config_file:
+        if log_level >= 1:
+            print("Reading config.yaml...")
         config = yaml.load(config_file, Loader=yaml.FullLoader)
 
     # Read main config.yaml and prepare python dicts
     global_config = config.get('global')
 
-    default_domain = global_config.get('domain', '')
-    default_transport = global_config.get('transport', 'udp')
-    default_srtp = global_config.get('srtp', 'none')
+    if 'domain' not in global_config:
+        global_config['domain'] = ''
+
+    if 'transport' not in global_config:
+        global_config['transport'] = 'udp'
+
+    if 'srtp' not in global_config:
+        global_config['srtp'] = 'none'
 
     account_config = config.get('accounts')
     account_config_mixed = {}
-    
+
     if account_config:
         for key in account_config:
             if not isinstance(key, (int, str)):
@@ -201,9 +241,10 @@ try:
 
             account_config_mixed[key] = account_config[key]
             account_config_mixed[key]['label'] = key
-            account_config_mixed[key]['domain'] = account_config[key].get('domain', default_domain)
-            account_config_mixed[key]['transport'] = account_config[key].get('transport', default_transport)
-            account_config_mixed[key]['srtp'] = account_config[key].get('srtp', default_srtp)
+
+            # Inherit global_config to all accounts
+            for k,v in global_config.items():
+                account_config_mixed[key][k] = account_config[key].get(k, global_config[k])
 
             # Make sure we can use a.88881 and a['88881'] at the same time. If 88881 is the number ;)
             if type(key) is str and key.isnumeric():
@@ -221,12 +262,12 @@ try:
 
     if single_scenario and single_scenario != "":
         single_scenario = single_scenario.split("/")[-1]
-        process_scenario(single_scenario, combined_config)
+        process_scenario(single_scenario, combined_config, log_level)
     else:
         for filename in os.listdir('/opt/input'):
-            process_scenario(filename, combined_config)
+            process_scenario(filename, combined_config, log_level)
 
     pathlib.Path('/opt/output/scenarios.done').touch(mode=777)
 
 except Exception as e:
-    print("Error preparing: {}".format(e))
+    print(f"[ERROR]: Error preparing: {e}")

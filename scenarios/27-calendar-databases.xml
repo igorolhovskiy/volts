@@ -4,8 +4,8 @@
 <config>
     <section type="database">
         <actions>
-        <!-- add subscribers to Kamailio -->
-            <action database="kamdb" stage="pre">
+        <!-- add subscribers to a SIP Proxy -->
+            <action database="sippproxydb" stage="pre">
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.90011.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
@@ -25,7 +25,7 @@
                     <field name="password" value="VOLTS"/>
                 </table>
             </action>
-            <!-- add endpoints and aors to Asterisk -->
+            <!-- add endpoints and aors to Asterisk realtime -->
             <action database="astdb" stage="pre">
                 <table name="ps_endpoints" type="insert" cleanup_after_test="true">
                     <field name="id" value="{{ a.90011.label }}"/>
@@ -78,6 +78,7 @@
                     <field name="contact" value="sip:{{ a.90013.label }}@{{ c.domain }}:5060"/>
                 </table>
             </action>
+            <!-- add internal calendar configuration for users -->
             <action database="astdb_users" stage="pre">
             <table name="holidays_days" type="insert"  cleanup_after_test="true">
                     <field name="extension" value="{{ a.90012.label }}"/>

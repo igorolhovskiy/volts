@@ -1,0 +1,36 @@
+<!-- Call echo service and make sure receive an answer and media -->
+<config>
+    <section type="voip_patrol">
+        <actions>
+            <action type="codec" disable="all"/>
+            <action type="codec" enable="pcma" priority="250"/>
+            <action type="codec" enable="pcmu" priority="249"/>
+            <action type="turn" enabled="true" server="{{ c.stun_address }}" stun_only="true"/>
+            <action type="call" label="Call to 11111 (echo) WSS"
+                transport="wss"
+                expected_cause_code="200"
+                caller="{{ a.88881.label }}@{{ c.domain }}"
+                callee="11111@{{ a.88881.domain_wss }}"
+                from="sip:{{ a.88881.label }}@{{ c.domain }}"
+                to_uri="11111@{{ c.domain }}"
+                max_duration="20" hangup="10"
+                auth_username="{{ a.88881.username }}"
+                password="{{ a.88881.password }}"
+                realm="{{ c.domain }}"
+                play="{{ c.play_file }}"
+                rtp_stats="true"
+                srtp="{{ a.88881.dtls }}"
+                record="/output/{{ scenario_name }}.wav"
+            />
+            <action type="wait" complete="true" ms="30000"/>
+        </actions>
+    </section>
+    <section type="media_check">
+        <actions>
+            <action type="sox"
+                sox_filter="length s -ge 9; length s -le 11; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
+                file="/output/{{ scenario_name }}.wav"
+            />
+        </actions>
+    </section>
+</config>

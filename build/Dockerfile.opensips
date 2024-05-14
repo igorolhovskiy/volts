@@ -1,0 +1,31 @@
+FROM python:3.7-buster
+LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && \
+    curl https://apt.opensips.org/opensips-org.gpg -o /usr/share/keyrings/opensips-org.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org buster 3.4-releases" > /etc/apt/sources.list.d/opensips.list && \
+    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org buster cli-nightly" >/etc/apt/sources.list.d/opensips-cli.list && \
+    apt-get update -qq && \
+    apt-get install --assume-yes \
+        m4 \
+        opensips \
+        opensips-http-modules \
+        opensips-tls-module \
+        opensips-tls-openssl-module \
+        opensips-regex-module \
+        opensips-wss-module \
+        opensips-compression-module \
+        opensips-cli \
+        sngrep \
+        ssl-cert && \
+    make-ssl-cert generate-default-snakeoil --force-overwrite && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ADD src/opensips/opensips.cfg /etc/opensips/opensips.cfg.m4
+ADD entrypoint.opensips.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

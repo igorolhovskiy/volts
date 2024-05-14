@@ -1,0 +1,15 @@
+<table name="ps_endpoints" type="insert" cleanup_after_test="true">
+    <field name="id" value="{{ a[endpoint].label }}"/>
+    <field name="transport" value="transport-udp"/>
+    <field name="aors" value="{{ a[endpoint].label }}"/>
+    <field name="context" value="{{ c.asterisk_context }}"/>
+    <field name="disallow" value="all"/>
+    <field name="allow" value="!all,opus,alaw"/>
+    <field name="direct_media" value="no"/>
+    <field name="ice_support" value="no"/>
+    <field name="rtp_timeout" value="3600"/>
+</table>
+<table name="ps_aors" type="insert" cleanup_after_test="true">
+    <field name="id" value="{{ a[endpoint].label }}"/>
+    <field name="contact" value="sip:{{ a[endpoint].label }}@{{ c.domain }}:5060"/>
+</table>

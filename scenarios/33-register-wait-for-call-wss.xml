@@ -1,0 +1,87 @@
+<!-- Register with 90012 and receive a call from 90011 over wss. Callee party hangs up -->
+<config>
+    <section type="database">
+        <actions>
+        <!-- add subscribers to a SIP proxy -->
+            <action database="sippproxydb" stage="pre">
+                {% for endpoint in ['90011', '90012'] %}
+                {% include "helpers/kamdb-endpoint.j2" %}
+                {% endfor %}
+            </action>
+        <!-- add endpoints and aors to Asterisk -->
+            <action database="astdb" stage="pre">
+                {% for endpoint in ['90011', '90012'] %}
+                {% include "helpers/astdb-endpoint.j2" %}
+                {% endfor %}
+            </action>
+        </actions>
+    </section>
+    <section type="voip_patrol">
+        <actions>
+            <action type="codec" disable="all"/>
+            <action type="codec" enable="pcma" priority="250"/>
+            <action type="codec" enable="opus" priority="248"/>
+            <action type="turn" enabled="true" server="{{ c.stun_address }}" stun_only="true"/>
+            <action type="register" label="Register {{ a.88881.username }}"
+                transport="{{ a.90012.transport }}"
+                account="{{ a.90012.username }}"
+                username="{{ a.90012.label }}"
+                auth_username="{{ a.90012.username }}"
+                password="{{ a.90012.password }}"
+                registrar="{{ c.domain }}"
+                realm="{{ c.domain }}"
+                expected_cause_code="200"
+                srtp="{{ a.90012.srtp }}"
+                disable_turn="true"
+            />
+            <action type="wait" complete="true" ms="2000"/>
+            <!-- Callee party hangs up first -->
+            <action type="accept" label="Receive call on {{ a.90012.username }} from {{ a.90011.label }} WSS"
+                call_count="1"
+                match_account="{{ a.90012.username }}"
+                hangup="10"
+                code="200" reason="OK"
+                transport="{{ a.90012.transport }}"
+                srtp="{{ a.90012.srtp }}"
+                disable_turn="true"
+                play="{{ c.play_file }}"
+                record="/output/{{ scenario_name }}_1.wav">
+                <check-header name="From" regex="^.*sip:\+412276{{ a.90011.label }}@.*$"/>
+            </action>
+            <action type="call" label="Call {{ a.90011.label }} WSS -> {{ a.90012.label }}"
+                transport="wss"
+                expected_cause_code="200"
+                caller="{{ a.90011.label }}@{{ c.domain }}"
+                callee="{{ a.90012.label }}@{{ c.domain_wss }}"
+                from="{{ a.90011.label }}@{{ c.domain }}"
+                to_uri="{{ a.90012.label }}@{{ c.domain }}"
+                max_duration="20" hangup="15"
+                auth_username="{{ a.90011.username }}"
+                password="{{ a.90011.password }}"
+                realm="{{ c.domain }}"
+                rtp_stats="true"
+                max_ring_duration="15"
+                srtp="{{ a.90011.dtls }}"
+                play="{{ c.play_file }}"
+                record="/output/{{ scenario_name }}_2.wav"
+            />
+            <action type="wait" complete="true" ms="30000"/>
+        </actions>
+    </section>
+    <section type="media_check">
+        <actions>
+            <action type="sox"
+                sox_filter="length s -ge 9; length s -le 11; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
+                file="/output/{{ scenario_name }}_1.wav"
+                print_debug="no"
+                delete_after="true"
+            />
+            <action type="sox"
+                sox_filter="length s -ge 9; length s -le 11; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
+                file="/output/{{ scenario_name }}_2.wav"
+                print_debug="no"
+                delete_after="true"
+            />
+        </actions>
+    </section>
+</config>

@@ -1,16 +1,19 @@
 global:
-  domain:     '<SOME_DOMAIN>'
-  transport:  'tls'
-  srtp:       'dtls,sdes,force'
-  play_file:  '/voice_ref_files/8000_2m30.wav'
+  domain:           'sip.target.system'
+  domain_wss:       'sip.target.system:8089'
+  transport:        'tls'
+  srtp:             'sdes,force'
+  dtls:             'dtls,force'
+  play_file:        '/voice_ref_files/8000_2m30.wav'
   asterisk_context: 'company_users'
+  stun_address:     'public.stun.server:3478'
 databases:
-  'kamdb':
+  'sippproxydb':
     type:       'mysql'
-    user:       'kamailioremote'
-    password:   'kamailioremotepass'
-    base:       'kamailio'
-    host:       'kamailio.local'
+    user:       'sipproxyremote'
+    password:   'sipproxyremotepass'
+    base:       'sipproxy'
+    host:       'sipproxy.local'
   'astdb':
     type:       'mysql'
     user:       'asterisk'

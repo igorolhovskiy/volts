@@ -6,9 +6,17 @@ REPORT_TYPE='table_full'
 # Log level on console. Can be overrided as 2nd argument passing to the script.
 LOG_LEVEL=0
 # Timezone
-TIMEZONE=`timedatectl show --property=Timezone --value`
+TIMEZONE=`timedatectl | grep 'Time zone' | cut -d ':' -f 2 | awk '{ print $1 }'`
 # Maximum time single test is allowed to run in seconds. (2 min)
 MAX_SINGLE_TEST_TIME=120
+
+# TLS-WSS proxy port parameters, change them only if you know what you are doing
+OPENSIPS_TLS_PORT=6051
+OPENSIPS_WSS_PORT=9443
+# HEP Source port
+OPENSIPS_HEPS_PORT=8887
+# HEP Destination port
+OPENSIPS_HEPD_PORT=8888
 
 print_running_char() {
     case "${rc}" in
@@ -33,7 +41,7 @@ wait_background_container() {
     i=0
     pc=`docker ps | grep ${1} | wc -l`
     rc='-'
-    echo -n "Runnng ${CURRENT_SCENARIO} ${2} ${rc}"
+    echo -n "Running ${CURRENT_SCENARIO} ${2} ${rc}"
 
     MAX_CYCLES=$(( ${MAX_SINGLE_TEST_TIME} * 2 ))
     # Limit with maximum time
@@ -50,6 +58,27 @@ wait_background_container() {
     fi
 
     echo -e "\b\b  \b\b. Done in $((i/2))s${ERROR_STRING}"
+}
+
+control_opensips() {
+    if [ "${1}" = "start" ]; then
+        echo "Websocket proxy starting...  "
+        docker run --name=${PROXY_CONTAINER_NAME} \
+            --env OPENSIPS_TLS_PORT=`echo ${OPENSIPS_TLS_PORT}` \
+            --env OPENSIPS_WSS_PORT=`echo ${OPENSIPS_WSS_PORT}` \
+            --env OPENSIPS_HEPS_PORT=`echo ${OPENSIPS_HEPS_PORT}` \
+            --env OPENSIPS_HEPD_PORT=`echo ${OPENSIPS_HEPD_PORT}` \
+            --env VP_TLS_PORT=`echo $[${VP_PORT} + 1]` \
+            --net=host \
+            --rm \
+            -d \
+            ${PROXY_IMAGE} >> /dev/null
+        # Give a time to start the container
+        sleep 0.5
+    else
+        echo "Websocket proxy stopping..."
+        docker stop ${PROXY_CONTAINER_NAME} >> /dev/null 2>&1
+    fi
 }
 
 run_voip_patrol() {
@@ -89,6 +118,8 @@ run_voip_patrol() {
 run_prepare() {
     docker run --name=${P_CONTAINER_NAME} \
         --env SCENARIO_NAME=`echo ${SCENARIO}` \
+        --env OPENSIPS_TLS_PORT=`echo ${OPENSIPS_TLS_PORT}` \
+        --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
         --env TZ=`echo ${TIMEZONE}` \
         --volume ${DIR_PREFIX}/scenarios:/opt/input/ \
         --volume ${DIR_PREFIX}/tmp/input:/opt/output \
@@ -172,13 +203,26 @@ run_media() {
         ${M_IMAGE}
 }
 
+cleanup_opensips_cache() {
+    docker exec ${PROXY_CONTAINER_NAME} /usr/bin/opensips-cli -x mi cache_remove_chunk "*" >> /dev/null 2>&1
+}
+
 delete_containers() {
+    docker stop ${M_CONTAINER_NAME} >> /dev/null 2>&1
+    docker stop ${SIPP_CONTAINER_NAME} >> /dev/null 2>&1
+    docker stop ${D_CONTAINER_NAME} >> /dev/null 2>&1
+    docker stop ${R_CONTAINER_NAME} >> /dev/null 2>&1
+    docker stop ${P_CONTAINER_NAME} >> /dev/null 2>&1
+    docker stop ${VP_CONTAINER_NAME} >> /dev/null 2>&1
+    docker stop ${PROXY_CONTAINER_NAME} >> /dev/null 2>&1
+
     docker rm ${M_CONTAINER_NAME} >> /dev/null 2>&1
     docker rm ${SIPP_CONTAINER_NAME} >> /dev/null 2>&1
     docker rm ${D_CONTAINER_NAME} >> /dev/null 2>&1
     docker rm ${R_CONTAINER_NAME} >> /dev/null 2>&1
     docker rm ${P_CONTAINER_NAME} >> /dev/null 2>&1
     docker rm ${VP_CONTAINER_NAME} >> /dev/null 2>&1
+    docker rm ${PROXY_CONTAINER_NAME} >> /dev/null 2>&1
 }
 
 run_scenario() {
@@ -187,6 +231,7 @@ run_scenario() {
     run_sipp
     run_database post
     run_media
+    cleanup_opensips_cache
 }
 
 
@@ -238,11 +283,18 @@ SIPP_CONTAINER_NAME=volts_sipp
 SIPP_IMAGE=volts_sipp:latest
 SIPP_RESULT_FILE="sipp.jsonl"
 
+# opensips
+PROXY_CONTAINER_NAME=volts_opensips
+PROXY_IMAGE=volts_opensips:latest
+
 rm -f ${DIR_PREFIX}/tmp/output/${D_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${M_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${VP_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${SIPP_RESULT_FILE}
 delete_containers
+
+# Start WSS-TLS proxy
+control_opensips start
 
 if [ -z ${SCENARIO} ]; then
     for D in ${DIR_PREFIX}/tmp/input/*; do
@@ -253,6 +305,9 @@ else
     CURRENT_SCENARIO=${SCENARIO}
     run_scenario
 fi
+
+# Stop WSS-TLS proxy
+control_opensips stop
 
 # report
 R_IMAGE=volts_report:latest

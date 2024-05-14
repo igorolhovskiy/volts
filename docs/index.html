@@ -243,12 +243,12 @@
       <span class="hljs-attribute" style="color: rgb(255, 255, 170);">srtp</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'dtls,sdes,force'</span>
       <span class="hljs-attribute" style="color: rgb(255, 255, 170);">play_file</span>:  <span class="hljs-string" style="color: rgb(162, 252, 162);">'/voice_ref_files/8000_12s.wav'</span>
     <span class="hljs-attribute" style="color: rgb(255, 255, 170);">databases</span>:
-      <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamdb'</span>:
+      <span class="hljs-string" style="color: rgb(162, 252, 162);">'sippproxydb'</span>:
         <span class="hljs-attribute" style="color: rgb(255, 255, 170);">type</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mysql'</span>
-        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorw'</span>
-        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:   <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorwpass'</span>
-        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">base</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailio'</span>
-        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">host</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mykamailiodb.local'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'SIP Proxyrw'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:   <span class="hljs-string" style="color: rgb(162, 252, 162);">'SIP Proxyrwpass'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">base</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'SIP Proxy'</span>
+        <span class="hljs-attribute" style="color: rgb(255, 255, 170);">host</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mySIP Proxydb.local'</span>
     <span class="hljs-attribute" style="color: rgb(255, 255, 170);">accounts</span>:
       <span class="hljs-string" style="color: rgb(162, 252, 162);">'88881'</span>:
         <span class="hljs-attribute" style="color: rgb(255, 255, 170);">username</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'88881'</span>
@@ -290,15 +290,15 @@
 
       <p class="text">
         .. but what if we need to add account data to PBX dynamically? Assume,
-        that we have Kamailio as a PBX here.
+        that we have SIP Proxy as a PBX here.
       </p>
 
 <pre class="hljs" style="display: block; overflow-x: auto; padding: 0.5em; background: rgb(51, 51, 51); color: rgb(255, 255, 255);"><span class="xml"><span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- Test simple register --&gt;</span>
   <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
       <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"database"</span>&gt;</span>
           <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
-                <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- "kamdb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below --&gt;</span>
-              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"kamdb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
+                <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- "sippproxydb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"sippproxydb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
                   <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- what data are we gonna insert into "subscriber" table? --&gt;</span>
                   <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"subscriber"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span> <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
                       <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"username"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
@@ -383,8 +383,8 @@
   <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
       <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"database"</span>&gt;</span>
           <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
-                <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- "kamdb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below --&gt;</span>
-              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"kamdb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
+                <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- "sippproxydb" here is referring to entity in "databases" from config.yaml. "stage" is explained a bit below --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"sippproxydb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
                   <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- what data are we gonna insert into "subscriber" table? --&gt;</span>
                   <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"subscriber"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span> <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
                       <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"username"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.88881.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
@@ -572,7 +572,7 @@
       </h4>
 
       <p class="text">
-        Schema - Kamailio subscriber and than we have Asterisk behind as PBX.
+        Schema - SIP Proxy subscriber and than we have Asterisk behind as PBX.
         <br /><br />
         <span>config.yaml</span>
       </p>
@@ -584,12 +584,12 @@
     <span class="hljs-attribute" style="color: rgb(255, 255, 170);">play_file</span>:        <span class="hljs-string" style="color: rgb(162, 252, 162);">'/voice_ref_files/8000_2m30.wav'</span>
     <span class="hljs-attribute" style="color: rgb(255, 255, 170);">asterisk_context</span>: <span class="hljs-string" style="color: rgb(162, 252, 162);">'default'</span>
   <span class="hljs-attribute" style="color: rgb(255, 255, 170);">databases</span>:
-    <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamdb'</span>:
+    <span class="hljs-string" style="color: rgb(162, 252, 162);">'sippproxydb'</span>:
       <span class="hljs-attribute" style="color: rgb(255, 255, 170);">type</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mysql'</span>
-      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorw'</span>
-      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:   <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailiorwpass'</span>
-      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">base</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'kamailio'</span>
-      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">host</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mykamailiodb.local'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'SIP Proxyrw'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">password</span>:   <span class="hljs-string" style="color: rgb(162, 252, 162);">'SIP Proxyrwpass'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">base</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'SIP Proxy'</span>
+      <span class="hljs-attribute" style="color: rgb(255, 255, 170);">host</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'mySIP Proxydb.local'</span>
     <span class="hljs-string" style="color: rgb(162, 252, 162);">'astdb'</span>:
       <span class="hljs-attribute" style="color: rgb(255, 255, 170);">type</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'pgsql'</span>
       <span class="hljs-attribute" style="color: rgb(255, 255, 170);">user</span>:       <span class="hljs-string" style="color: rgb(162, 252, 162);">'asteriskrw'</span>
@@ -614,8 +614,8 @@
   <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">config</span>&gt;</span>
       <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">section</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"database"</span>&gt;</span>
           <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">actions</span>&gt;</span>
-          <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- add subscribers to Kamailio --&gt;</span>
-              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"kamdb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
+          <span class="hljs-comment" style="color: rgb(136, 136, 136);">&lt;!-- add subscribers to SIP Proxy --&gt;</span>
+              <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">action</span> <span class="hljs-attr">database</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"sippproxydb"</span> <span class="hljs-attr">stage</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"pre"</span>&gt;</span>
                   <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">table</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"subscriber"</span> <span class="hljs-attr">type</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"insert"</span>  <span class="hljs-attr">cleanup_after_test</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"true"</span>&gt;</span>
                       <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"username"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ a.90011.username }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>
                       <span class="hljs-tag" style="color: rgb(98, 200, 243);">&lt;<span class="hljs-name" style="font-weight: 700;">field</span> <span class="hljs-attr">name</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"domain"</span> <span class="hljs-attr">value</span>=<span class="hljs-string" style="color: rgb(162, 252, 162);">"</span></span></span><span class="hljs-template-variable" style="color: rgb(173, 229, 252);">{{ c.domain }}</span><span class="xml"><span class="hljs-tag" style="color: rgb(98, 200, 243);"><span class="hljs-string" style="color: rgb(162, 252, 162);">"</span>/&gt;</span>

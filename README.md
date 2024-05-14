@@ -5,35 +5,39 @@
 
 **Voip Open Linear Tester Suite**
 
-Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp)  and [`docker`](https://www.docker.com/)</br>
-Some alternative introduction to the system can be found on [DOU](https://dou.ua/forums/topic/38567/) (ukrainian) or in my talk at [Kamailio World 2022](https://youtu.be/9NGu5LpGSMc?t=7727).
+Functional tests for a VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/)
 
-# 10'000 ft. view
+## 10'000 ft. view
 
 The system is designed to run simple call scenarios, that you usually do with your desk phones.</br>
 Scenarios are run one by one from `scenarios` folder in alphabetical order, which could be considered a limitation, but also allows you to reuse the same accounts in a different set of tests. This stands for `Linear` in the name ;)
 So, call some destination(s) with one(or more) device(s) and control call arrival on another phone(s).</br>
 But wait, there is more. VOLTS also can integrate with your MySQL and/or PostgreSQL databases to write some data there before the test and remove it after.</br>
 Also, it can record (and play, obviously) media during the call and do media checks of these files (currently basic via [SoX](https://sox.sourceforge.net/))</br>
-It will make and receive calls and configure the database. *It's not doing transfers at the moment. Sorry. I don't need it*</br></br>
+It will make and receive calls and configure the database. *It's not doing transfers at the moment. Sorry. I don't need em*</br>
+And to add, you can definitely use it in (TDD)[https://en.wikipedia.org/wiki/Test-driven_development] approach when adding functionalities to your existing PBX system. Test-Fail-Fix.</br></br>
 
-The suite consists of 5 parts, that are running sequentially
+
+The suite consists of 8 parts, that are running sequentially
 1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `sipp`, `database` and `media_check` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [`jinja2_time`](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
+2. Start of a `Websocket-TLS` proxy to provide possibility of use WSS transport for the `voip_patrol` scenarios.
 ---
-2. Running database scripts. Usually - put some data inside some routing or subscriber data.
-3. Running `voip_patrol` or `sipp` scenario.
-4. Again running database scripts. Usually - remove data that had been put at stage 2.
-5. Run `media_check` if necessary to analyse obtained media files
+3. Running database scripts. Usually - put some data inside some routing or subscriber data.
+4. Running `voip_patrol` or `sipp` scenario.
+5. Again running database scripts. Usually - remove data that had been put at stage 3.
+6. Run `media_check` if necessary to analyse obtained media files
 ---
-6. Report - at this part we're analyzing the results of the previous step reading and interpreting file obtained running steps 2-5. Printing results in the desired way. Table by default.
-Steps 2-5 are running sequentially against scenarios files prepared in step 1. One at a time. Again, it's for `Linear`
-# Building
+7. Tearing down a `Websocket-TLS` proxy.
+8. Report - at this part we're analyzing the results of the previous steps reading and interpreting file obtained running steps 3-6. Printing results in the desired way. Table by default.
+Steps 3-6 are running sequentially against scenarios files prepared in step 1. One at a time. Again, it's for `Linear`
+
+## Building
 
 Suite is designed to run locally from your Linux PC or Mac (maybe). And of course, `docker` should be installed. It's up to you.</br>
-To build, just run `./build.sh`. It would build 5 `docker` images and tag em accordingly.</br>
-In a case if `voip_patrol` is updated, you need to rebuild its container again, you can do it with `./build.sh -r`
+To build, just run `./build.sh`. Script will build 6 `docker` images and tag em accordingly.</br>
+In a case if `voip_patrol` or `sipp` is updated, you need to rebuild these containers again, you can do it with `./build.sh -r`
 
-# Running
+## Running
 
 After building, just run
 ```sh
@@ -47,20 +51,26 @@ or
 ```sh
 ./run.sh scenarios/<scenario_name>
 ```
+Want to have some long debug data for the test?
+```sh
+./run.sh <scenario_name> <log_level>
+```
+To get full, use `10` as a `log_level`. You will have a lot of info on the console screen.</br>
 After running of the suite you can always find a `voip_patrol` presented results in `tmp/output` folder.
 
 But simply run something blindly is boring, so before this, best to do some
 
-# Configuration
+## Configuration
 
 We suppose to configure 2 parts here. First, and most complexes are
 
-## Scenarios
+### Scenarios
 
 `VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database`, and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
 Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to [`jinja2-time`](https://github.com/hackebrot/jinja2-time) documentation.</br>
 As you will see below, the core for all type of tests are actually `voip_patrol` or `sipp`, others are just helpers around.
-### Global config
+
+#### Global config
 
 Values for templates are taken from `scenarios/config.yaml`</br>
 One thing to mention here, is that vars from `global` section transform to `c.` (for `config` or `g.` for `global`, `c.` and `.g` are equal) and from `accounts` to `a.` in templates for shorter notation.</br>
@@ -75,12 +85,12 @@ global:
   srtp:       'dtls,sdes,force'
   play_file:  '/voice_ref_files/8000_12s.wav'
 databases:
-  'kamdb':
+  'sipproxydb':
     type:       'mysql'
-    user:       'kamailiorw'
-    password:   'kamailiorwpass'
-    base:       'kamailio'
-    host:       'mykamailiodb.local'
+    user:       'sipproxydbrw'
+    password:   'sipproxydbrwpass'
+    base:       'sipproxydb'
+    host:       'mysipproxydb.local'
 accounts:
   '88881':
     username:       '88881'
@@ -95,7 +105,8 @@ accounts:
     auth_username:  '90001'
     password:       'SuperSecretPass3'
 ```
-### VoIP - patrol
+
+#### VoIP - patrol
 To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) config, but here follows some basic example to show the idea of the templating.</br></br>
 **Make a register**
 ```xml
@@ -122,7 +133,22 @@ To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovs
     </section>
 </config>
 ```
-### SIPP
+
+##### **Websocket transport notice.**
+As `voip_patrol` itself is not supporting websocket transport, [`OpenSIPS`](https://opensips.org/) is used as a TLS-WSS SIP proxy. Using of it is simple, you just specify `transport="wss"` in your `voip_patrol` section, but under the hood it's using combination of `tls` transport and `proxy` option, so you can't use `proxy` option along with WebSocket transport.</br>
+There is also a possibility to debug what is passing the proxy as it posts `HEP` encapsulated SIP traffic on a localhost. You can capture it with [`sngrep`](https://github.com/irontec/sngrep) using
+
+```sh
+$ docker exec -it volts_opensips sngrep -L udp:127.0.0.1:8888
+```
+during running tests, or using local installation of `sngrep` with
+```sh
+$ sudo sngrep -L udp:127.0.0.1:8888 port 8888
+```
+where `8888` is an `OPENSIPS_HEPD_PORT` specified in the `run.sh`.</br></br>
+Point, you need to use `turn` section of your `voip_patrol` configuration to make sure media is passing. See the example below.
+
+#### SIPP
 You can just add your existing SIPP scenarios mainly unchanged and they would be run with the following command:
 ```sh
 sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
@@ -160,7 +186,8 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 | --- | --- |
 | transport | Actual transport SIPP will use. Values are `udp`(default), `tcp` or `tls`. |
 | target | What you usually specify as target when running standalone SIPP. If transport is TLS and no port is specified, `5061` is appended by default. |
-### Database
+
+#### Database
 Database config is also done in XML, section `database`. We have 2 `stage`s of database scripts.
 | Stage | Description |
 | --- | --- |
@@ -182,8 +209,8 @@ So, inside the `database` action you specify the tables you're working with. Eac
 <config>
     <section type="database">
         <actions>
-             <!-- "kamdb" here is referring to an entity in "databases" from config.yaml. -->
-            <action database="kamdb" stage="pre">
+             <!-- "sippproxydb" here is referring to an entity in "databases" from config.yaml. -->
+            <action database="sippproxydb" stage="pre">
                 <!-- what data are we gonna insert into the "subscriber" table? -->
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.88881.username }}"/>
@@ -215,7 +242,8 @@ So, inside the `database` action you specify the tables you're working with. Eac
     </section>
 </config>
 ```
-### Media check
+
+#### Media check
 You can analyze calls recording with various media tools. *Currently only SoX is supported.*</br>
 Media check is also described in XML
 | Attribute | Description |
@@ -226,7 +254,7 @@ Media check is also described in XML
 | `print_debug` | Print debug info on file on the console while testing. Useful for adjusting `filter` parameters. `yes`/`no`. `no` by default |
 | `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
 
-#### SoX media check
+##### SoX media check
 Within this check parameters from the `file` are collected by `sox` utility, more precisely - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
 In a `sox_filter` attribute you can write a string to check some given values against collected parameters. All filter expressions should be true to test pass. Best to be explained on the example</br>
 ```
@@ -304,15 +332,17 @@ All number-like values are automatically treated as numbers and you can apply `-
 ```
 
 
-## `run.sh` script
+#### `run.sh` parameters
 
 Not that much to configure here, mostly you'll be interested in setting environment variables at the start of the script
 | Variable name | Description |
 | --- | --- |
-|`REPORT_TYPE` | Actually, the report type, that would be provided at the end. </br>`table` - print results in a table, only failed tests are printed. </br>`json` - print results in JSON format, only failed tests are printed. </br>`table_full`, `json_full` - print results in table or JSON respectively, but print full info on tests passed
-| `LOG_LEVEL` | `voip_patrol`/`sipp` log level on the console. In the case of the `sipp` scenarios debug it's useful to have this value equal to 3 |
+|`REPORT_TYPE` | Actually, the report type, that would be provided at the end. </br>`table` - print results in a table, only failed tests are printed. </br>`json` - print results in JSON format, only failed tests are printed. </br>`table_full`, `json_full` - print results in table or JSON respectively, but print full info on tests passed |
+| `LOG_LEVEL` | `voip_patrol`/`sipp`/`sox` log level on the console. In the case of the `sipp` scenarios debug it's useful to have this value equal to 3.</br>You can set this value using 2nd parameter while running single scenario |
 
-# Results
+There are other options available, check `run.sh`.
+
+## Results
 
 As a result, you will have a table like this.
 ```
@@ -339,12 +369,13 @@ As a result, you will have a table like this.
 Scenarios ['49-teams-follow-forward', '50-team-no-answer-forward'] are failed!
 ```
 That means your system is not OK, or something need to be tuned with the tests.</br>
-Not really much to describe here, just read info on the console
+Not really much to describe here, just read info on the console.
 
-# Scenario Examples
+## Scenario Examples
 Examples shown in this section can duplicate examples from the section above. For more examples, refer to the `scenarios` folder.</br>
+
 ### Make a successful register
- * Here we assume that account data is known to our PBX.
+ * Here we assume that account data is known to our target system, ex. PBX.
 ```xml
 <config>
     <section type="voip_patrol">
@@ -369,14 +400,14 @@ Examples shown in this section can duplicate examples from the section above. Fo
     </section>
 </config>
 ```
-* .. but what if we need to add account data to PBX dynamically? Assume, that we have Kamailio as a PBX here.
+* .. but what if we need to add account data to PBX dynamically? Assume, that we have a SIP Proxy as a target system here.
 ```xml
 <!-- Test simple register -->
 <config>
     <section type="database">
         <actions>
-             <!-- "kamdb" here is referring to an entity in "databases" from config.yaml. "stage" is explained a bit below -->
-            <action database="kamdb" stage="pre">
+             <!-- "sippproxydb" here is referring to an entity in "databases" from config.yaml. "stage" is explained a bit below -->
+            <action database="sippproxydb" stage="pre">
                 <!-- what data are we gonna insert into the "subscriber" table? -->
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.88881.username }}"/>
@@ -415,7 +446,7 @@ We're deleting data the from database and restoring it afterward.
 <config>
     <section type="database">
         <actions>
-            <action database="kamdb" stage="pre">
+            <action database="sippproxydb" stage="pre">
                 <table name="subscriber" type="delete" cleanup_after_test="true">
                     <field name="username" value="{{ a.88881.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
@@ -439,7 +470,7 @@ We're deleting data the from database and restoring it afterward.
             />
             <action type="wait" complete="true" ms="2000"/>
         </actions>
-    /section>
+    </section>
 </config>
 ```
 
@@ -505,6 +536,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
     </actions>
 </config>
 ```
+
 ### Advanced call scenario
 Register with 2 accounts and call from he third one, not answer on 1st and make sure we receive a call on the second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
 Also make sure, that on `88882` we got the call from `90001` (based on CallerID).
@@ -582,23 +614,26 @@ Also make sure, that on `88882` we got the call from `90001` (based on CallerID)
 ```
 
 ### Advanced call scenario - 2. Now with databases.
-Schema - Kamailio subscriber and then we have Asterisk behind as PBX.
+Schema - SIP Proxy subscriber and then we have Asterisk behind as PBX.
 
 `config.yaml`
 ```yaml
 global:
-  domain:           '<SOME_DOMAIN>'
+  domain:           '<SIP_DOMAIN>'
+  domain_wss:       '<SIP_WSS_DOMAIN>'
   transport:        'tls'
-  srtp:             'dtls,sdes,force'
+  srtp:             'sdes,force'
+  dtls:             'dtls,force'
+  stun_address:     'stun.ekiga.net:3478'
   play_file:        '/voice_ref_files/8000_2m30.wav'
   asterisk_context: 'default'
 databases:
-  'kamdb':
+  'sippproxydb':
     type:       'mysql'
-    user:       'kamailiorw'
-    password:   'kamailiorwpass'
-    base:       'kamailio'
-    host:       'mykamailiodb.local'
+    user:       'sipproxyrw'
+    password:   'sipproxyrwpass'
+    base:       'sipproxy'
+    host:       'mysipproxydb.local'
   'astdb':
     type:       'pgsql'
     user:       'asteriskrw'
@@ -621,8 +656,8 @@ And now we need to populate all databases and make a call!
 <config>
     <section type="database">
         <actions>
-        <!-- add subscribers to Kamailio -->
-            <action database="kamdb" stage="pre">
+        <!-- add subscribers to sip proxy -->
+            <action database="sippproxydb" stage="pre">
                 <table name="subscriber" type="insert"  cleanup_after_test="true">
                     <field name="username" value="{{ a.90011.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
@@ -722,6 +757,7 @@ And now we need to populate all databases and make a call!
     </section>
 </config>
 ```
+
 ### Adding media check.
 
 ```xml
@@ -765,9 +801,53 @@ And now we need to populate all databases and make a call!
         </actions>
     </section>
 </config>
-
 ```
-### Running SIPP tests
+
+### Call to ECHO via WSS (WebSocket + DTLS), make sure media is received
+
+```xml
+<!-- Call echo service and make sure receive an answer with media -->
+<config>
+    <section type="voip_patrol">
+        <actions>
+            <action type="codec" disable="all"/>
+            <action type="codec" enable="pcma" priority="250"/>
+            <action type="codec" enable="pcmu" priority="249"/>
+            <action type="turn" enabled="true" server="{{ c.stun_address }}" stun_only="true"/>
+            <action type="wait" ms="5000"/>
+            <action type="call" label="Call to 11111 (echo) WSS"
+                transport="wss"
+                expected_cause_code="200"
+                caller="{{ a.88881.label }}@{{ c.domain }}"
+                callee="11111@{{ a.88881.domain_wss }}"
+                from="sip:{{ a.88881.label }}@{{ c.domain }}"
+                to_uri="11111@{{ c.domain }}"
+                max_duration="20" hangup="10"
+                auth_username="{{ a.88881.username }}"
+                password="{{ a.88881.password }}"
+                realm="{{ c.domain }}"
+                play="{{ c.play_file }}"
+                rtp_stats="true"
+                srtp="{{ a.88881.dtls }}"
+                record="/output/{{ scenario_name }}.wav"
+            />
+            <action type="wait" complete="true" ms="30000"/>
+        </actions>
+    </section>
+    <section type="media_check">
+        <actions>
+            <action type="sox"
+                sox_filter="length s -ge 9; length s -le 11; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
+                file="/output/{{ scenario_name }}.wav"
+                print_debug="no"
+                delete_after="yes"
+            />
+        </actions>
+    </section>
+</config>
+```
+
+### Basic SIPp options
 ```xml
 <config>
     <section type="sipp">
@@ -797,7 +877,9 @@ And now we need to populate all databases and make a call!
     </section>
 </config>
 ```
-Adding some auth to SIPP
+
+### Adding some auth to SIPp
+
 ```xml
 <config>
     <section type="sipp">
