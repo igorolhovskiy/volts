@@ -21,7 +21,7 @@
             <action type="codec" disable="all"/>
             <action type="codec" enable="pcma" priority="250"/>
             <action type="codec" enable="opus" priority="248"/>
-            <action type="turn" enabled="true" server="{{ c.stun_address }}" stun_only="true"/>
+            <action type="turn" enabled="true" server="{{ c.stun_address }}"/>
             <action type="register" label="Register {{ a.88881.username }}"
                 transport="{{ a.90012.transport }}"
                 account="{{ a.90012.username }}"
