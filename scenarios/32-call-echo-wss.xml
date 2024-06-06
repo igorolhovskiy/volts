@@ -5,7 +5,7 @@
             <action type="codec" disable="all"/>
             <action type="codec" enable="pcma" priority="250"/>
             <action type="codec" enable="pcmu" priority="249"/>
-            <action type="turn" enabled="true" server="{{ c.stun_address }}" stun_only="true"/>
+            <action type="turn" enabled="true" server="{{ c.stun_address }}"/>
             <action type="call" label="Call to 11111 (echo) WSS"
                 transport="wss"
                 expected_cause_code="200"
