@@ -1,7 +1,7 @@
 FROM python:3.7-buster
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
-ENV SIPP_VERSION=3.6.1
+ENV SIPP_VERSION=3.7.2
 
 COPY src/sipp/requirements.txt /root/requirements.txt
 
@@ -13,7 +13,7 @@ RUN apt-get update && \
         ssl-cert &&\
     cd usr/src/ && \
     wget https://github.com/SIPp/sipp/releases/download/v${SIPP_VERSION}/sipp-${SIPP_VERSION}.tar.gz && \
-    tar xvf sipp-3.6.1.tar.gz && \
+    tar xvf sipp-${SIPP_VERSION}.tar.gz && \
     cd sipp-${SIPP_VERSION} && \
     cmake . -DUSE_GSL=1 -DUSE_PCAP=1 -DUSE_SSL=1 -DUSE_SCTP=1 && \
     make -j4 && \

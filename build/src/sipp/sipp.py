@@ -35,7 +35,7 @@ def call_sipp(scenario_path, target, transport, log_level):
     if not os.path.exists(scenario_path):
         return f"Scenario file <{scenario_path}> is absent...\n"
 
-    tmp_media_port = str(random.randrange(50000, 60000))
+    tmp_media_port = random.randrange(50000, 60000)
     ip_address = socket.gethostbyname(socket.gethostname())
 
     cmd = [
@@ -46,8 +46,10 @@ def call_sipp(scenario_path, target, transport, log_level):
         scenario_path,
         '-m',
         '1',
-        '-mp',
-        tmp_media_port,
+        '-min_rtp_port',
+        str(tmp_media_port),
+        '-max_rtp_port',
+        str(tmp_media_port + 10),
         '-i',
         ip_address,
         '-trace_err',
@@ -61,6 +63,10 @@ def call_sipp(scenario_path, target, transport, log_level):
         # Check for port in a case of TLS transport
         if len(target.split(':')) == 1:
             cmd.extend([f"{target}:5061"])
+
+    if log_level > 1:
+        sipp_cmd = " ".join(cmd)
+        print(f"SIPP command:\n{sipp_cmd}")
 
     # Run SIPP
     sipp_p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

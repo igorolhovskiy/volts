@@ -270,4 +270,4 @@ try:
     pathlib.Path('/opt/output/scenarios.done').touch(mode=777)
 
 except Exception as e:
-    print(f"[ERROR]: Error preparing: {e}")
+    print(f"[ERROR]: Error preparing: {e} in {filename}{single_scenario}")
