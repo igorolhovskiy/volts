@@ -215,6 +215,7 @@ try:
         pass
 
     with open(r"/opt/input/config.yaml") as config_file:
+        filename = "config.yaml"
         if log_level >= 1:
             print("Reading config.yaml...")
         config = yaml.load(config_file, Loader=yaml.FullLoader)
@@ -270,4 +271,14 @@ try:
     pathlib.Path('/opt/output/scenarios.done').touch(mode=777)
 
 except Exception as e:
-    print(f"[ERROR]: Error preparing: {e} in {filename}{single_scenario}")
+    try:
+        filename
+    except NameError:
+       filename = ""
+
+    try:
+        single_scenario
+    except NameError:
+        single_scenario = ""
+
+    print(f"[ERROR]: Error preparing {filename}{single_scenario}: {e}")

@@ -43,6 +43,8 @@ wait_background_container() {
     rc='-'
     echo -n "Running ${CURRENT_SCENARIO} ${2} ${rc}"
 
+    TIME_TEST_START=`date +%s`
+    ERROR_STRING=""
     MAX_CYCLES=$(( ${MAX_SINGLE_TEST_TIME} * 2 ))
     # Limit with maximum time
     while [ $i -le ${MAX_CYCLES} ] && [ $pc -ge 1 ]; do
@@ -57,7 +59,8 @@ wait_background_container() {
         ERROR_STRING="\n[WARNING] Container ${1} was forcefully stopped"
     fi
 
-    echo -e "\b\b  \b\b. Done in $((i/2))s${ERROR_STRING}"
+    TIME_TEST_END=`date +%s`
+    echo -e "\b\b  \b\b. Done in $((${TIME_TEST_END} - ${TIME_TEST_START}))s${ERROR_STRING}"
 }
 
 control_opensips() {
@@ -269,6 +272,8 @@ D_RESULT_FILE="database.jsonl"
 # voip_patrol
 VP_IMAGE=volts_vp:latest
 VP_CONTAINER_NAME=volts_vp
+#VP_IMAGE=voip_patrol_local:latest
+#VP_CONTAINER_NAME=voip_patrol_local
 VP_PORT=5060
 VP_RESULT_FILE="voip_patrol.jsonl"
 LOG_LEVEL_FILE=${LOG_LEVEL}
@@ -286,6 +291,8 @@ SIPP_RESULT_FILE="sipp.jsonl"
 # opensips
 PROXY_CONTAINER_NAME=volts_opensips
 PROXY_IMAGE=volts_opensips:latest
+
+TIME_TOTAL_START=`date +%s`
 
 rm -f ${DIR_PREFIX}/tmp/output/${D_RESULT_FILE}
 rm -f ${DIR_PREFIX}/tmp/output/${M_RESULT_FILE}
@@ -315,4 +322,10 @@ R_CONTAINER_NAME=volts_report
 
 run_report
 delete_containers
+
+TIME_TOTAL_END=`date +%s`
+TIME_TOTAL_RUN=$((${TIME_TOTAL_END} - ${TIME_TOTAL_START}))
+HMS_TOTAL_RUN=`date -d@${TIME_TOTAL_RUN} -u +%H:%M:%S`
+echo "Total time taken: ${HMS_TOTAL_RUN}"
+
 exit 0
