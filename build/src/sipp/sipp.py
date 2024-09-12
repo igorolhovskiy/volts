@@ -56,6 +56,7 @@ def call_sipp(scenario_path, target, transport, log_level):
         '-error_file',
         'sipp_err.log'
     ]
+
     if transport == 'tcp':
         cmd.extend(['-t', 't1', target])
     elif transport == 'tls':
@@ -63,6 +64,8 @@ def call_sipp(scenario_path, target, transport, log_level):
         # Check for port in a case of TLS transport
         if len(target.split(':')) == 1:
             cmd.extend([f"{target}:5061"])
+    else:
+        cmd.extend([target])
 
     if log_level > 1:
         sipp_cmd = " ".join(cmd)
