@@ -1,7 +1,7 @@
 FROM python:3.7-buster
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
-ENV SIPP_VERSION=3.7.2
+ENV SIPP_VERSION=3.7.3
 
 COPY src/sipp/requirements.txt /root/requirements.txt
 
@@ -10,6 +10,7 @@ RUN apt-get update && \
         lksctp-tools \
         libsctp-dev \
         libpcap-dev \
+        libgsl-dev \
         ssl-cert &&\
     cd usr/src/ && \
     wget https://github.com/SIPp/sipp/releases/download/v${SIPP_VERSION}/sipp-${SIPP_VERSION}.tar.gz && \
