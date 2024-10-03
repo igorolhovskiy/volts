@@ -28,7 +28,7 @@ def write_report(filename, report):
     except:
         pass
 
-def call_sipp(scenario_path, target, transport, log_level):
+def call_sipp(scenario_path, target, transport, log_level, max_calls, call_rate, max_ccalls, total_timeout, socket_mode):
     '''
     Here we're calling sipp
     '''
@@ -40,12 +40,16 @@ def call_sipp(scenario_path, target, transport, log_level):
 
     cmd = [
         '/usr/bin/timeout',
-        '600s',
+        f"{total_timeout}s",
         '/usr/local/bin/sipp',
         '-sf',
         scenario_path,
         '-m',
-        '1',
+        str(max_calls),
+        '-r',
+        str(call_rate),
+        '-l',
+        str(max_ccalls),
         '-min_rtp_port',
         str(tmp_media_port),
         '-max_rtp_port',
@@ -57,15 +61,20 @@ def call_sipp(scenario_path, target, transport, log_level):
         'sipp_err.log'
     ]
 
+    socket_extender = "1"
+    if socket_mode.lower() == "multi":
+        socket_extender = "n"
+
     if transport == 'tcp':
-        cmd.extend(['-t', 't1', target])
+        cmd.extend(['-t', f"t{socket_extender}", target])
     elif transport == 'tls':
-        cmd.extend(['-t', 'l1', '-tls_cert', '/etc/ssl/certs/ssl-cert-snakeoil.pem', '-tls_key', '/etc/ssl/private/ssl-cert-snakeoil.key'])
+        cmd.extend(['-t', f"l{socket_extender}", '-tls_cert', '/etc/ssl/certs/ssl-cert-snakeoil.pem', '-tls_key', '/etc/ssl/private/ssl-cert-snakeoil.key'])
         # Check for port in a case of TLS transport
-        if len(target.split(':')) == 1:
+        if ':' not in target:
             cmd.extend([f"{target}:5061"])
     else:
-        cmd.extend([target])
+        # UDP
+        cmd.extend(['-t', f"u{socket_extender}", target])
 
     if log_level > 1:
         sipp_cmd = " ".join(cmd)
@@ -143,6 +152,11 @@ except Exception as e:
 
 target = action.attrib.get('target')
 transport = action.attrib.get('transport', 'udp').lower()
+call_rate = action.attrib.get('call_rate', '10')
+max_calls = action.attrib.get('max_calls', '1')
+max_ccalls = action.attrib.get('max_concurrent_calls', '10')
+total_timeout = action.attrib.get('total_timeout', '600')
+socket_mode = action.attrib.get('socket_mode', 'single')
 
 if target is None:
     report['error'] = "SIPP target is not specified"
@@ -166,5 +180,15 @@ except Exception as e:
     write_report(report_file, report)
     sys.exit(1)
 
-report['error'] = call_sipp(sipp_scenario_file, target, transport, log_level)
+report['error'] = call_sipp(
+                        scenario_path=sipp_scenario_file,
+                        target=target,
+                        transport=transport,
+                        log_level=log_level,
+                        max_calls=max_calls,
+                        call_rate=call_rate,
+                        max_ccalls=max_calls,
+                        total_timeout=total_timeout,
+                        socket_mode=socket_mode
+                    )
 write_report(report_file, report)

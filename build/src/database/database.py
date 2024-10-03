@@ -70,7 +70,6 @@ def preform_db_operations(db_options, db_actions, log_level = 1):
     db_conn = get_db_connection(db_options)
     if not db_conn:
         return f"Cannot connect to database due to database module {db_options.get('type')} is not available"
-
     db_cursor = db_conn.cursor()
     error = ""
 

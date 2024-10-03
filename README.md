@@ -69,7 +69,6 @@ We suppose to configure 2 parts here. First, and most complexes are
 `VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database`, and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
 Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to [`jinja2-time`](https://github.com/hackebrot/jinja2-time) documentation.</br>
 As you will see below, the core for all type of tests are actually `voip_patrol` or `sipp`, others are just helpers around.
-
 #### Global config
 
 Values for templates are taken from `scenarios/config.yaml`</br>
@@ -105,7 +104,6 @@ accounts:
     auth_username:  '90001'
     password:       'SuperSecretPass3'
 ```
-
 #### VoIP - patrol
 To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) config, but here follows some basic example to show the idea of the templating.</br></br>
 **Make a register**
@@ -133,7 +131,6 @@ To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovs
     </section>
 </config>
 ```
-
 ##### **Websocket transport notice.**
 As `voip_patrol` itself is not supporting websocket transport, [`OpenSIPS`](https://opensips.org/) is used as a TLS-WSS SIP proxy. Using of it is simple, you just specify `transport="wss"` in your `voip_patrol` section, but under the hood it's using combination of `tls` transport and `proxy` option, so you can't use `proxy` option along with WebSocket transport.</br>
 There is also a possibility to debug what is passing the proxy as it posts `HEP` encapsulated SIP traffic on a localhost. You can capture it with [`sngrep`](https://github.com/irontec/sngrep) using
@@ -184,8 +181,14 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 ```
 | Attribute | Description |
 | --- | --- |
-| transport | Actual transport SIPP will use. Values are `udp`(default), `tcp` or `tls`. |
-| target | What you usually specify as target when running standalone SIPP. If transport is TLS and no port is specified, `5061` is appended by default. |
+| `transport` | Actual transport SIPP will use. Values are `udp`(default), `tcp` or `tls`. |
+| `socket_mode` | `single` (default) - with one socket for all calls or `multi` - with one socket for each call. |
+| `target` | What you usually specify as target when running standalone SIPP. If transport is TLS and no port is specified, `5061` is appended by default. |
+| `call_rate` | `-r` option in SIPP. Set the call rate (in calls per seconds). 10 by default. |
+| `max_calls` | `-m` option in SIPP. Stop the test and exit when 'max_calls' calls are processed. 1 by default. |
+| `max_concurrent_calls` | `-l` option in SIPP. Set the maximum number of simultaneous calls. 10 by default. |
+| `total_timeout` | How long to wait for a test to preform in seconds. 600 (10 minutes) by default |
+
 
 #### Database
 Database config is also done in XML, section `database`. We have 2 `stage`s of database scripts.
@@ -242,7 +245,6 @@ So, inside the `database` action you specify the tables you're working with. Eac
     </section>
 </config>
 ```
-
 #### Media check
 You can analyze calls recording with various media tools. *Currently only SoX is supported.*</br>
 Media check is also described in XML
@@ -470,7 +472,7 @@ We're deleting data the from database and restoring it afterward.
             />
             <action type="wait" complete="true" ms="2000"/>
         </actions>
-    </section>
+    /section>
 </config>
 ```
 
@@ -536,7 +538,6 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
     </actions>
 </config>
 ```
-
 ### Advanced call scenario
 Register with 2 accounts and call from he third one, not answer on 1st and make sure we receive a call on the second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
 Also make sure, that on `88882` we got the call from `90001` (based on CallerID).
@@ -757,7 +758,6 @@ And now we need to populate all databases and make a call!
     </section>
 </config>
 ```
-
 ### Adding media check.
 
 ```xml
@@ -802,9 +802,7 @@ And now we need to populate all databases and make a call!
     </section>
 </config>
 ```
-
 ### Call to ECHO via WSS (WebSocket + DTLS), make sure media is received
-
 ```xml
 <!-- Call echo service and make sure receive an answer with media -->
 <config>
@@ -847,7 +845,7 @@ And now we need to populate all databases and make a call!
 </config>
 ```
 
-### Basic SIPp options
+### Running SIPP tests
 ```xml
 <config>
     <section type="sipp">
@@ -877,9 +875,7 @@ And now we need to populate all databases and make a call!
     </section>
 </config>
 ```
-
-### Adding some auth to SIPp
-
+Adding some auth to SIPP
 ```xml
 <config>
     <section type="sipp">
@@ -931,6 +927,150 @@ And now we need to populate all databases and make a call!
                 ]]>
                 </send>
                 ...
+            </action>
+        </actions>
+    </section>
+</config>
+```
+and some load as well. Why not?
+
+*Note: this example in particular was to test push notification server, that's why it have iOS references*
+```xml
+<config>
+    <section type="database">
+        <actions>
+             <!-- "sippproxydb" here is referring to an entity in "databases" from config.yaml. -->
+            <action database="sippproxydb" stage="pre">
+                <!-- what data are we gonna insert into the "subscriber" table? -->
+                <table name="subscriber" type="insert" cleanup_after_test="true">
+                    <field name="username" value="{{ a.88881.username }}"/>
+                    <field name="domain" value="{{ c.domain }}"/>
+                    <field name="password" value="{{ a.88881.password }}"/>
+                </table>
+            </action>
+        </actions>
+    </section>
+    <section type="sipp">
+        <actions>
+            <action transport="{{ c.transport }}"
+                    target="{{ c.domain }}"
+                    max_calls="1000"
+                    call_rate="10"
+                    max_concurrent_calls="10"
+                    socket_mode="single"
+                >
+                <scenario name="UAC REGISTER - UnREGISTER with Auth">
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.ch.cern.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 60
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true" rrs="true"></recv>
+
+                    <recv response="401" auth="true"></recv>
+
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.ch.cern.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 60
+                            [authentication username={{ a.88881.username }} password={{ a.88881.password }}]
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true"></recv>
+
+                    <recv response="200" crlf="true"></recv>
+
+                    <pause milliseconds="5000"/>
+
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.ch.cern.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 0
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true" rrs="true"></recv>
+
+                    <recv response="401" auth="true"></recv>
+
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.ch.cern.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 0
+                            [authentication username={{ a.88881.username }} password={{ a.88881.password }}]
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true" rrs="true"></recv>
+                    <recv response="200"></recv>
+
+                    <!-- definition of the response time repartition table (unit is ms)   -->
+                    <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200"/>
+
+                    <!-- definition of the call length repartition table (unit is ms)     -->
+                    <CallLengthRepartition value="10, 50, 100, 500, 1000, 5000, 10000"/>
+
+                </scenario>
+
             </action>
         </actions>
     </section>
