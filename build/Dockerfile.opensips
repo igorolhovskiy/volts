@@ -1,12 +1,13 @@
-FROM python:3.7-buster
+FROM debian:12
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
+    apt-get install --assume-yes curl && \
     curl https://apt.opensips.org/opensips-org.gpg -o /usr/share/keyrings/opensips-org.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org buster 3.4-releases" > /etc/apt/sources.list.d/opensips.list && \
-    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org buster cli-nightly" >/etc/apt/sources.list.d/opensips-cli.list && \
+    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org bookworm 3.4-releases" > /etc/apt/sources.list.d/opensips.list && \
+    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org bookworm cli-nightly" > /etc/apt/sources.list.d/opensips-cli.list && \
     apt-get update -qq && \
     apt-get install --assume-yes \
         m4 \
