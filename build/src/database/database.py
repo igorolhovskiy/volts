@@ -36,6 +36,7 @@ import sys
 import os
 import json
 
+
 def get_db_connection(db_options):
     '''
     Get database handler based on type
@@ -60,6 +61,7 @@ def get_db_connection(db_options):
             read_timeout=10,
             write_timeout=10
         )
+
 
 def preform_db_operations(db_options, db_actions, log_level = 1):
     '''
@@ -89,6 +91,9 @@ def preform_db_operations(db_options, db_actions, log_level = 1):
             if sql_stmt is None:
                 continue
 
+            if log_level >= 3:
+                print(f"SQL statement: {sql_stmt} / {table_actions['value']}")
+
             try:
                 db_cursor.execute(sql_stmt, table_actions['value'])
                 db_conn.commit()
@@ -101,31 +106,35 @@ def preform_db_operations(db_options, db_actions, log_level = 1):
     db_conn.close()
     return error
 
+
 def form_insert_statement(table, fields):
-    sql  = f"INSERT INTO {table} ("
-    sql += ",".join(fields)
+    sql = f"INSERT INTO {table} ("
+    sql += "`" + "`,`".join(fields) + "`"
     sql += ") VALUES ("
     sql += ",".join(['%s'] * len(fields))
     sql += ")"
 
     return sql
+
 
 def form_replace_statement(table, fields):
-    sql  = f"REPLACE INTO {table} ("
-    sql += ",".join(fields)
+    sql = f"REPLACE INTO {table} ("
+    sql += "`" + "`,`".join(fields) + "`"
     sql += ") VALUES ("
     sql += ",".join(['%s'] * len(fields))
     sql += ")"
 
     return sql
+
 
 def form_delete_statement(table, fields):
     sql = f"DELETE FROM {table} WHERE "
     for field in fields:
-        sql += f"{field} = %s AND "
+        sql += f"`{field}` = %s AND "
     sql += "1 = 1"
 
     return sql
+
 
 def write_report(filename, report):
     report['status'] = "PASS"
@@ -147,14 +156,14 @@ def write_report(filename, report):
         pass
 
 
-### SCRIPT START
+# SCRIPT START
 scenario_name = os.environ.get("SCENARIO")
 # sage can be pre - running before voip_patrol to populate database and post - to clean up.
 scenario_stage = os.environ.get("STAGE", "pre")
 # Log level for the console
 try:
     log_level = int(os.environ.get("LOG_LEVEL", "1"))
-except:
+except ValueError:
     log_level = 1
 
 report_file = os.environ.get("RESULT_FILE", "database.jsonl")
@@ -187,8 +196,8 @@ try:
         report['error'] = "Scenario missing <actions>, exiting..."
         write_report(report_file, report)
         sys.exit(1)
-except:
-    report['error'] = "Scenario missing <actions>, exiting..."
+except Exception as e:
+    report['error'] = f"Scenario missing <actions>, exiting... {e}"
     write_report(report_file, report)
     sys.exit(1)
 
@@ -263,10 +272,10 @@ for action in actions:
         continue_on_error = True if continue_on_error.lower() in ['true', 'on', '1'] else False
 
         db_action[table_name] = {
-            'type'  :           table_action,
-            'name'  :           [],
-            'value' :           [],
-            'continue_on_error':  continue_on_error,
+            'type':                 table_action,
+            'name':                 [],
+            'value':                [],
+            'continue_on_error':    continue_on_error,
         }
 
         field_names = []
