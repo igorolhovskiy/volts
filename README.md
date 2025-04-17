@@ -34,6 +34,7 @@ Steps 3-6 are running sequentially against scenarios files prepared in step 1. O
 ## Building
 
 Suite is designed to run locally from your Linux PC or Mac (maybe). And of course, `docker` should be installed. It's up to you.</br>
+*Notes on using `podman`: I was able to run VOTLS using `podman-docker` package. One obstacle by default - the volumes permissions inside a container. To address this issue please refer to [this article](https://www.redhat.com/en/blog/container-permission-denied-errors).*</br>
 To build, just run `./build.sh`. Script will build 6 `docker` images and tag em accordingly.</br>
 In a case if `voip_patrol` or `sipp` is updated, you need to rebuild these containers again, you can do it with `./build.sh -r`
 
