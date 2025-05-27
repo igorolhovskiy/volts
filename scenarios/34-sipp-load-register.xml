@@ -1,0 +1,143 @@
+<!-- Load test for Register emulating iOS also to stress test Push Notification registration backend -->
+<config>
+    <section type="database">
+        <actions>
+        <!-- add subscribers to SIP Proxy -->
+            <action database="sippproxydb" stage="pre">
+                {% for endpoint in ['90011'] %}
+                {% include "helpers/kamdb-endpoint.j2" %}
+                {% endfor %}
+            </action>
+        <!-- add endpoints and aors to Asterisk -->
+            <action database="astdb" stage="pre">
+                {% for endpoint in ['90011'] %}
+                {% include "helpers/astdb-endpoint.j2" %}
+                {% endfor %}
+            </action>
+        </actions>
+    </section>
+    <section type="sipp">
+        <actions>
+            <action transport="{{ c.transport }}"
+                    target="{{ c.domain }}"
+                    max_calls="1000"
+                    call_rate="10"
+                    max_concurrent_calls="10"
+                    socket_mode="single"
+                >
+                <scenario name="UAC REGISTER - UnREGISTER with Auth">
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=561BE16AF83485DAE0D4A30C327DD9B2B667743BFB3B434198284FAD69D9CA20:voip&789A69F23F8B61D0A2D1F642D589CA0021287C7CAE3465390A219AABBE18E90E:remote;pn-provider=apns;pn-param=ABCD1234.local.dummy.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:660643f8-ab90-001b-9cd0-0f6b34087649>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 60
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true" rrs="true"></recv>
+
+                    <recv response="401" auth="true"></recv>
+
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=561BE16AF83485DAE0D4A30C327DD9B2B667743BFB3B434198284FAD69D9CA20:voip&789A69F23F8B61D0A2D1F642D589CA0021287C7CAE3465390A219AABBE18E90E:remote;pn-provider=apns;pn-param=ABCD1234.local.dummy.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:660643f8-ab90-001b-9cd0-0f6b34087649>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 60
+                            [authentication username={{ a.88881.username }} password={{ a.88881.password }}]
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true"></recv>
+
+                    <recv response="200" crlf="true"></recv>
+
+                    <pause milliseconds="5000"/>
+
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=561BE16AF83485DAE0D4A30C327DD9B2B667743BFB3B434198284FAD69D9CA20:voip&789A69F23F8B61D0A2D1F642D589CA0021287C7CAE3465390A219AABBE18E90E:remote;pn-provider=apns;pn-param=ABCD1234.local.dummy.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:660643f8-ab90-001b-9cd0-0f6b34087649>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 0
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true" rrs="true"></recv>
+
+                    <recv response="401" auth="true"></recv>
+
+                    <send retrans="500">
+                        <![CDATA[
+                            REGISTER sip:{{ c.domain }}:[remote_port] SIP/2.0
+                            Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+                            From: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}>;tag=[pid]VOLTsTag00[call_number]
+                            To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
+                            Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
+                            CSeq: 1 REGISTER
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=561BE16AF83485DAE0D4A30C327DD9B2B667743BFB3B434198284FAD69D9CA20:voip&789A69F23F8B61D0A2D1F642D589CA0021287C7CAE3465390A219AABBE18E90E:remote;pn-provider=apns;pn-param=ABCD1234.local.dummy.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:660643f8-ab90-001b-9cd0-0f6b34087649>"
+                            Max-Forwards: 70
+                            Supported: replaces, outbound, gruu, path
+                            User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
+                            Accept: application/sdp
+                            Accept: text/plain
+                            Accept: application/vnd.gsma.rcs-ft-http+xml
+                            Expires: 0
+                            [authentication username={{ a.88881.username }} password={{ a.88881.password }}]
+                            Content-Length: 0
+
+                        ]]>
+                    </send>
+
+                    <recv response="100" optional="true" rrs="true"></recv>
+                    <recv response="200"></recv>
+
+                    <!-- definition of the response time repartition table (unit is ms)   -->
+                    <ResponseTimeRepartition value="10, 20, 30, 40, 50, 100, 150, 200"/>
+
+                    <!-- definition of the call length repartition table (unit is ms)     -->
+                    <CallLengthRepartition value="10, 50, 100, 500, 1000, 5000, 10000"/>
+
+                </scenario>
+
+            </action>
+        </actions>
+    </section>
+</config>
