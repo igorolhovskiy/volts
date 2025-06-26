@@ -1,12 +1,14 @@
 import os
 import pathlib
 import yaml
+import traceback
 
 import lxml.etree as ET
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-# Main thing here - we're using jinja2_time.TimeExtension (https://github.com/hackebrot/jinja2-time)
+# Main thing here - we're using jinja2_time.TimeExtension
+# (https://github.com/hackebrot/jinja2-time)
 env = Environment(
     loader=FileSystemLoader("/opt/input"),
     autoescape=select_autoescape(["xml"]),
@@ -14,6 +16,7 @@ env = Environment(
 )
 
 env.datetime_format = "%Y-%m-%d %T"  # type: ignore (Ignoring as pylance not getting extension of jinja2_time.TimeExtension)
+
 
 # Scenario processing functions
 def scenario_from_template(scenario_name, config):
@@ -41,9 +44,10 @@ def scenario_from_template(scenario_name, config):
     return result_scenario
 
 
-def separate_scenario(scenario, combined_config):
+def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
     '''
-    Funciton that returns dict of ET.ElementTree XML structures for voip_patrol and database config
+    Funciton that returns dict of ET.ElementTree XML structures
+    for voip_patrol and database config
     '''
     parser = ET.XMLParser(strip_cdata=False, remove_comments=True)
 
@@ -51,11 +55,15 @@ def separate_scenario(scenario, combined_config):
         root = ET.fromstring(scenario, parser)
     except Exception as e:
         print(f"Problem processing {scenario} scenario: {e}")
-        return {}
+        return None
 
     if root.tag != 'config':
         print(f"Root element is not <config> in {scenario}")
-        return {}
+        return None
+
+    scenario_tag = root.attrib.get('tag')
+    if len(tags) > 0 and scenario_tag not in tags:
+        return None
 
     separate_scenarios = {}
 
@@ -63,11 +71,11 @@ def separate_scenario(scenario, combined_config):
 
         # For backward compatibility
         if child.tag == 'actions':
-            separate_scenarios['voip_patrol'] = get_vp_config(root)
+            separate_scenarios['voip_patrol'] = get_vp_config(root, name, log_level)
             break
 
         if child.attrib.get('type') == 'voip_patrol':
-            separate_scenarios['voip_patrol'] = get_vp_config(child)
+            separate_scenarios['voip_patrol'] = get_vp_config(child, name, log_level)
 
         if child.attrib.get('type') == 'database':
             separate_scenarios['database'] = get_database_config(child, combined_config)
@@ -83,7 +91,10 @@ def separate_scenario(scenario, combined_config):
 
 def write_scenarios(name, separate_scenarios):
     '''
-    Function to write separate scenarios to /opt/output/<scenario_name>/voip_patrol.xml and /opt/output/<scenario_name>/database.xml
+    Function to write separate scenarios to
+    /opt/output/<scenario_name>/voip_patrol.xml
+    and
+    /opt/output/<scenario_name>/database.xml
     '''
 
     # Strip the ".XML"
@@ -108,6 +119,7 @@ def write_scenarios(name, separate_scenarios):
     if sipp_scenario_tree:
         sipp_scenario_tree.write(f"{scenario_dir_path}/sipp.xml")
 
+
 def get_generic_config(config):
     '''
     Take an media_check config and make new root - <config> for it
@@ -115,13 +127,13 @@ def get_generic_config(config):
     if config[0].tag != 'actions':
         raise Exception('Tag is not <actions>')
 
-    root = ET.Element('config' , attrib=None, nsmap=None)
+    root = ET.Element('config', attrib=None, nsmap=None)
     root.append(config[0])
 
     return ET.ElementTree(root)
 
 
-def get_vp_config(config):
+def get_vp_config(config, name='', log_level=0):
     '''
     Take an voip_patrol/media_check config and make new root - <config> for it
     Also replace check transport for wss and replace it with tls and add outbound proxy in this case
@@ -131,19 +143,35 @@ def get_vp_config(config):
 
     actions = config[0]
 
-    # Relpace wss transport with tls
     for elem in actions:
-        if elem.tag == 'action' and elem.attrib.get('transport') == 'wss':
-            elem.set('transport', 'tls')
-            # Set outbound proxy where it's supported
-            if elem.attrib.get('type') in ['call', 'register']:
-                proxy_tls_port = os.environ.get('OPENSIPS_TLS_PORT', 6051)
-                elem.set('proxy', f"127.0.0.1:{proxy_tls_port}")
+        if elem.tag == 'action':
+            # Relpace wss transport with tls
+            if elem.attrib.get('transport') == 'wss':
+                elem.set('transport', 'tls')
+                # Set outbound proxy where it's supported
+                if elem.attrib.get('type') in ['call', 'register']:
+                    proxy_tls_port = os.environ.get('OPENSIPS_TLS_PORT', 6051)
+                    elem.set('proxy', f"127.0.0.1:{proxy_tls_port}")
+            # Print a warning if we're missing some parameters, that known to voip_patrol to cause an errors
+            if log_level > 1:
+                if elem.attrib.get('type') == 'register':
+                    if (elem.attrib.get('username', '') == ''
+                            or elem.attrib.get('registrar', '') == ''
+                            or elem.attrib.get('password', '') == ''):
+                        print(f"{name}: Warning: username/registrar/password are empty in <register> action")
+                if elem.attrib.get('type') == 'accept':
+                    if elem.attrib.get('match_account', '') == '':
+                        print(f"{name}: Warning: match_account is empty in <accept> action")
+                if elem.attrib.get('type') == 'call':
+                    if (elem.attrib.get('caller', '') == ''
+                            or elem.attrib.get('callee', '') == ''):
+                        print(f"{name}: Warning: caller/callee are empty in <call> action")
 
-    root = ET.Element('config' , attrib=None, nsmap=None)
+    root = ET.Element('config', attrib=None, nsmap=None)
     root.append(actions)
 
     return ET.ElementTree(root)
+
 
 def get_database_config(config, combined_config):
     '''
@@ -182,27 +210,38 @@ def get_database_config(config, combined_config):
 
     return ET.ElementTree(root)
 
-def process_scenario(name, combined_config, log_level):
+
+def process_scenario(name, combined_config, log_level, tags):
     '''
     Here we taking template and making valid voip_patrol and database scenarios.
     '''
     result_xml = scenario_from_template(name, combined_config)
     if result_xml is None:
         return
-    
+
     if log_level >= 1:
         print(f"Processing {name}")
 
-    separate_scenarios = separate_scenario(result_xml, combined_config)
+    separate_scenarios = separate_scenario(result_xml, combined_config, name, log_level, tags)
+
+    if separate_scenarios is None:
+        return
+
     write_scenarios(name, separate_scenarios)
 
 # Main script starting
 
+
 # Log level for the console
 try:
     log_level = int(os.environ.get("LOG_LEVEL", "1"))
-except:
+except (ValueError, TypeError):
     log_level = 1
+
+# Get tags if any
+tags = os.environ.get("TAG", "").split(',')
+# Remove empty strings
+tags = tuple([x for x in tags if x])
 
 try:
 
@@ -244,7 +283,7 @@ try:
             account_config_mixed[key]['label'] = key
 
             # Inherit global_config to all accounts
-            for k,v in global_config.items():
+            for k, v in global_config.items():
                 account_config_mixed[key][k] = account_config[key].get(k, global_config[k])
 
             # Make sure we can use a.88881 and a['88881'] at the same time. If 88881 is the number ;)
@@ -263,14 +302,15 @@ try:
 
     if single_scenario and single_scenario != "":
         single_scenario = single_scenario.split("/")[-1]
-        process_scenario(single_scenario, combined_config, log_level)
+        process_scenario(single_scenario, combined_config, log_level, tags)
     else:
         for filename in os.listdir('/opt/input'):
-            process_scenario(filename, combined_config, log_level)
+            process_scenario(filename, combined_config, log_level, tags)
 
     pathlib.Path('/opt/output/scenarios.done').touch(mode=777)
 
 except Exception as e:
+    tb = traceback.format_exc()
     try:
         filename
     except NameError:
@@ -281,4 +321,4 @@ except Exception as e:
     except NameError:
         single_scenario = ""
 
-    print(f"[ERROR]: Error preparing {filename}{single_scenario}: {e}")
+    print(f"[ERROR]: Error preparing\n File: {filename}\n Scenario: {single_scenario}\n Error: {e}\n Trace: {tb}")

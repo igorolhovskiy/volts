@@ -52,11 +52,10 @@ or
 ```sh
 ./run.sh scenarios/<scenario_name>
 ```
-Want to have some long debug data for the test?
+To get a set of tests running, usig `tag` keyword, see a how-to below
 ```sh
-./run.sh <scenario_name> <log_level>
+./run.sh tag=...
 ```
-To get full, use `10` as a `log_level`. You will have a lot of info on the console screen.</br>
 After running of the suite you can always find a `voip_patrol` presented results in `tmp/output` folder.
 
 But simply run something blindly is boring, so before this, best to do some
@@ -139,7 +138,11 @@ There is also a possibility to debug what is passing the proxy as it posts `HEP`
 ```sh
 $ docker exec -it volts_opensips sngrep -L udp:127.0.0.1:8888
 ```
-during running tests, or using local installation of `sngrep` with
+or
+```sh
+./run.sh sngrep
+```
+in a separate terminal window during running tests, or using local installation of `sngrep` with
 ```sh
 $ sudo sngrep -L udp:127.0.0.1:8888 port 8888
 ```
@@ -153,7 +156,8 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 ```
 **Send an OPTIONS**
 ```xml
-<config>
+<config tag="sipp">
+    <!-- Tag this test as sipp -->
     <section type="sipp">
         <actions>
             <action transport="{{ c.transport }}" target="{{ c.domain }}">
@@ -375,6 +379,7 @@ That means your system is not OK, or something need to be tuned with the tests.<
 Not really much to describe here, just read info on the console.
 
 ## Scenario Examples
+
 Examples shown in this section can duplicate examples from the section above. For more examples, refer to the `scenarios` folder.</br>
 
 ### Make a successful register
@@ -969,7 +974,7 @@ and some load as well. Why not?
                             To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
                             Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
                             CSeq: 1 REGISTER
-                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.ch.cern.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.generic.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
                             Max-Forwards: 70
                             Supported: replaces, outbound, gruu, path
                             User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
@@ -994,7 +999,7 @@ and some load as well. Why not?
                             To: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@{{ c.domain }}:[remote_port]>
                             Call-ID: {% now 'utc', '%H%M%S' %}///[call_id]
                             CSeq: 1 REGISTER
-                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.ch.cern.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
+                            Contact: "VOLTS UAC TESTER" <sip:{{ a.88881.label }}@[local_ip]:[local_port];pn-prid=EFFDB4D8C32F845036CA3555003D44E98C82EA3F8437BD3499D14A17B039D5B6:voip&FC86D3D61AAFCC5D18AAC9D4CEDC6C70505080693FD21D0E62B5061FD4516ADE:remote;pn-provider=apns;pn-param=ABCD1234.generic.linphone.voip&remote;pn-silent=1;pn-timeout=0;pn-msg-str=IM_MSG;pn-call-str=IC_MSG;pn-groupchat-str=GC_MSG;pn-call-snd=notes_of_the_optimistic.caf;pn-msg-snd=msg.caf;transport=[transport]>;+sip.instance="<urn:uuid:65f9b73f-d655-4dd3-8633-10d8122c5299>"
                             Max-Forwards: 70
                             Supported: replaces, outbound, gruu, path
                             User-Agent: LinphoneiOS/4.6.5 (iPhone) LinphoneSDK/5.2.45
@@ -1076,4 +1081,21 @@ and some load as well. Why not?
         </actions>
     </section>
 </config>
+```
+### Running only selected tests.
+You can specify a `tag` on each test scenario, just adding an attribute to a `config` element.
+```xml
+<config tag='set1'>
+    <section type="voip_patrol">
+        ...
+    </section>
+</config>
+```
+Specify a tag by running
+```sh
+./run.sh tag=set1
+```
+In this case only tests that are holding this specific `tag` will be executed. And yes, in a `run.sh` you can specify as many tags as you want, using comma-separated list.
+```sh
+./run.sh tag=set1,set2,test_set3
 ```

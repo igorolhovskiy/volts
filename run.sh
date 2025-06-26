@@ -7,8 +7,8 @@ REPORT_TYPE='table_full'
 LOG_LEVEL=0
 # Timezone
 TIMEZONE=`timedatectl | grep 'Time zone' | cut -d ':' -f 2 | awk '{ print $1 }'`
-# Maximum time single test is allowed to run in seconds. (2 min)
-MAX_SINGLE_TEST_TIME=120
+# Maximum time single test is allowed to run in seconds. (10 min)
+MAX_SINGLE_TEST_TIME=600
 
 # TLS-WSS proxy port parameters, change them only if you know what you are doing
 OPENSIPS_TLS_PORT=6051
@@ -76,8 +76,9 @@ control_opensips() {
             --rm \
             -d \
             ${PROXY_IMAGE} >> /dev/null
-        # Give a time to start the container
-        sleep 0.5
+        # Give a time to start the container and push it a bit
+        sleep 1
+        cleanup_opensips_cache
     else
         echo "Websocket proxy stopping..."
         docker stop ${PROXY_CONTAINER_NAME} >> /dev/null 2>&1
@@ -123,6 +124,7 @@ run_prepare() {
         --env SCENARIO_NAME=`echo ${SCENARIO}` \
         --env OPENSIPS_TLS_PORT=`echo ${OPENSIPS_TLS_PORT}` \
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
+        --env TAG=`echo ${PREPARE_TAG}` \
         --env TZ=`echo ${TIMEZONE}` \
         --volume ${DIR_PREFIX}/scenarios:/opt/input/ \
         --volume ${DIR_PREFIX}/tmp/input:/opt/output \
@@ -242,6 +244,7 @@ run_scenario() {
 DIR_PREFIX=`pwd`
 # First arument - single test to run
 SCENARIO="$1"
+
 # Second argument - default log level
 LOG_LEVEL="${2:-${LOG_LEVEL}}"
 
@@ -255,14 +258,6 @@ fi
 # prepare
 P_IMAGE=volts_prepare:latest
 P_CONTAINER_NAME=volts_prepare
-
-rm -f tmp/input/scenarios.done
-run_prepare
-
-if [ ! -f ${DIR_PREFIX}/tmp/input/scenarios.done ]; then
-    echo "Scenarios are not prepared, please check for the errors"
-    exit 1
-fi
 
 # database
 D_IMAGE=volts_database:latest
@@ -291,6 +286,55 @@ SIPP_RESULT_FILE="sipp.jsonl"
 # opensips
 PROXY_CONTAINER_NAME=volts_opensips
 PROXY_IMAGE=volts_opensips:latest
+
+# Special word - STOP. Stop here
+if [ "x${SCENARIO}" == "xstop" ]; then
+    echo -n "Stopping and deleting containers..."
+    delete_containers
+    echo " Done"
+    exit 0
+fi
+
+# Special word - 'sngrep'. Just launch sngrep in a docker container
+if [ "x${SCENARIO}" == "xsngrep" ]; then
+    if [ `docker ps | grep -c ${PROXY_CONTAINER_NAME}` == 1 ]; then
+        echo "Starting sngrep in docker..."
+        docker exec -it ${PROXY_CONTAINER_NAME} sngrep -L udp:127.0.0.1:${OPENSIPS_HEPD_PORT}
+        echo "Done"
+    else
+        echo "Cannot find ${PROXY_CONTAINER_NAME}. Make sure you have VOLTS running"
+    fi
+    exit 0
+fi
+
+# Special word - 'dbclean'. Cleaning up database
+if [ "x${SCENARIO}" == "xdbclean" ]; then
+    echo -n "Cleaning up database(s)"
+    rm -f tmp/input/scenarios.done
+    unset SCENARIO
+    run_prepare
+    for D in ${DIR_PREFIX}/tmp/input/*; do
+        CURRENT_SCENARIO=`basename ${D}`
+        run_database post
+        echo -n .
+    done
+    echo " Done."
+    exit 0
+fi
+
+# Special word - 'tag='. Here you can specify which tag(s) you want to run
+if [ "`echo ${SCENARIO} | cut -c1-4`" == "tag=" ]; then
+    PREPARE_TAG=`echo ${SCENARIO} | cut -c5-`
+    unset SCENARIO
+fi
+
+rm -f tmp/input/scenarios.done
+run_prepare
+
+if [ ! -f ${DIR_PREFIX}/tmp/input/scenarios.done ]; then
+    echo "Scenarios are not prepared, please check for the errors"
+    exit 1
+fi
 
 TIME_TOTAL_START=`date +%s`
 
