@@ -170,6 +170,7 @@ accounts:
 
 #### Basic Registration Example
 
+{% raw %}
 ```xml
 <config>
     <section type="voip_patrol">
@@ -189,6 +190,7 @@ accounts:
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 #### WebSocket Transport Notice
@@ -215,6 +217,7 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 
 **Example SIPP OPTIONS test:**
 
+{% raw %}
 ```xml
 <config tag="sipp">
     <section type="sipp">
@@ -242,6 +245,7 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 #### SIPP Attributes
@@ -280,6 +284,7 @@ Database configuration is done in XML, section `database`. There are 2 stages:
 
 **Example with Database:**
 
+{% raw %}
 ```xml
 <config>
     <section type="database">
@@ -298,6 +303,7 @@ Database configuration is done in XML, section `database`. There are 2 stages:
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 ### Media Check
@@ -333,6 +339,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
 
 **Example with Media Check:**
 
+{% raw %}
 ```xml
 <config>
     <section type="voip_patrol">
@@ -350,6 +357,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 ## Examples
@@ -360,33 +368,42 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
 
 #### Simple Registration Test
 
+{% raw %}
 ```xml
 <config>
     <section type="voip_patrol">
         <actions>
             <action type="register" label="Register {{ a.88881.label }}"
                 transport="{{ a.88881.transport }}"
+                <!-- Account parameter is more used in receiving calls on this account later -->
                 account="{{ a.88881.label }}"
+                <!-- username would be a part of AOR - <sip:username@realm> -->
                 username="{{ a.88881.username }}"
+                <!-- auth_username would be used in WWW-Authorize procedure -->
                 auth_username="{{ a.88881.auth_username }}"
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
+                <!-- We are expecting to get 200 code here, so REGISTER is successful -->
                 expected_cause_code="200"
             />
+            <!-- Just wait 2 sec for all timeouts -->
             <action type="wait" complete="true" ms="2000"/>
         </actions>
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 #### Basic Call Scenario
 
+{% raw %}
 ```xml
 <config>
     <section type="voip_patrol">
         <actions>
+            <!-- As we're using call functionality here - define the list of codecs -->
             <action type="codec" disable="all"/>
             <action type="codec" enable="pcma" priority="250"/>
             <action type="codec" enable="pcmu" priority="249"/>
@@ -400,28 +417,37 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
                 registrar="{{ c.domain }}"
                 realm="{{ c.domain }}"
                 expected_cause_code="200"
+                <!-- Make sure we are using SRTP on a call received. This is done here as accounts are created before accept(answer) action -->
                 srtp="{{ a.88881.srtp }}"
             />
             <action type="wait" complete="true" ms="2000"/>
             
             <action type="accept" label="Receive call on {{ a.88881.label }}"
+                <!-- This is not a load test - so only 1 call is expected -->
                 call_count="1"
+                <!-- Make sure we have received a call on a previously registered account -->
                 match_account="{{ a.88881.label }}"
+                <!-- Hangup in 10 seconds after answer -->
                 hangup="10"
+                <!-- Send back "200 OK" -->
                 code="200" reason="OK"
                 transport="{{ a.88881.transport }}"
+                <!-- Make sure we are using SRTP -->
                 srtp="{{ a.88881.srtp }}"
+                <!-- Play a file back to gather RTCP stats in the report -->
                 play="{{ c.play_file }}"
             />
             
             <action type="call" label="Call {{ a.90001.label }} -> {{ a.88881.label }}"
                 transport="tls"
+                <!-- We are waiting for an answer -->
                 expected_cause_code="200"
                 caller="{{ a.90001.label }}@{{ c.domain }}"
                 callee="{{ a.88881.label }}@{{ c.domain }}"
                 from="sip:{{ a.90001.label }}@{{ c.domain }}"
                 to_uri="{{ a.88881.label }}@{{ c.domain }}"
                 max_duration="20" hangup="10"
+                <!-- We are specifying all auth data here for INVITE -->
                 auth_username="{{ a.90001.username }}"
                 password="{{ a.90001.password }}"
                 realm="{{ c.domain }}"
@@ -435,6 +461,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 ### Advanced Scenarios
@@ -442,22 +469,27 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
 
 #### Call with Database Integration
 
+{% raw %}
 ```xml
+<!-- Register with 90012 and receive a call from 90011 -->
 <config>
     <section type="database">
         <actions>
+        <!-- add subscribers to sip proxy -->
+            <!-- "sippproxydb" here is referring to an entity in "databases" from config.yaml. -->
             <action database="sippproxydb" stage="pre">
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.90011.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
                     <field name="ha1" value="{{ a.90011.ha1 }}"/>
-                    <field name="password" value="{{ 'now' | date: '%Y-%m-%d %H:%M:%S' }}"/>
+                    <!-- here password due to ha1 is useless, so we can put some data based on jinja2_time.TimeExtension -->
+                    <field name="password" value="{% now 'local' %}"/>
                 </table>
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.90012.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
                     <field name="ha1" value="{{ a.90012.ha1 }}"/>
-                    <field name="password" value="{{ 'now' | date: '%m/%d/%y' }}"/>
+                    <field name="password" value="{% now 'local' + 'days=1', '%D' %}"/>
                 </table>
             </action>
         </actions>
@@ -467,11 +499,14 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 #### WSS Call with Media Check
 
+{% raw %}
 ```xml
+<!-- Call echo service and make sure receive an answer with media -->
 <config>
     <section type="voip_patrol">
         <actions>
@@ -483,6 +518,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
             
             <action type="call" label="Call to 11111 (echo) WSS"
                 transport="wss"
+                <!-- We are expecting answer here -->
                 expected_cause_code="200"
                 caller="{{ a.88881.label }}@{{ c.domain }}"
                 callee="11111@{{ a.88881.domain_wss }}"
@@ -495,6 +531,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
                 play="{{ c.play_file }}"
                 rtp_stats="true"
                 srtp="{{ a.88881.dtls }}"
+                <!-- We need to record file on answer. To analyze it below now it MUST be with "/output/" path prefix -->
                 record="/output/{{ scenario_name }}.wav"
             />
             <action type="wait" complete="true" ms="30000"/>
@@ -503,7 +540,9 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
     <section type="media_check">
         <actions>
             <action type="sox"
+                <!-- We are testing that the outcome of the recorded file is between 9 and 11 seconds and checking amplitude -->
                 sox_filter="length s -ge 9; length s -le 11; maximum amplitude -ge 0.9"
+                <!-- File name is the same as in the "record" attribute in the "call" action above. Now it MUST be with "/output/" path prefix -->
                 file="/output/{{ scenario_name }}.wav"
                 delete_after="yes"
             />
@@ -511,6 +550,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 ### SIPP Tests
@@ -518,6 +558,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
 
 #### Load Testing with SIPP
 
+{% raw %}
 ```xml
 <config>
     <section type="sipp">
@@ -528,6 +569,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
                     call_rate="10"
                     max_concurrent_calls="10"
                     socket_mode="single">
+                <!-- sipp {{ c.domain }}:5061 -sf scen.xml -m 1000 -r 10 -l 10 -t ln -->
                 <scenario name="UAC REGISTER - UnREGISTER with Auth">
                     <send retrans="500">
                         <![CDATA[
@@ -608,6 +650,7 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
     </section>
 </config>
 ```
+{% endraw %}
 {: .code}
 
 #### Tagged Test Execution
