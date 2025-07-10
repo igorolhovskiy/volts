@@ -8,6 +8,7 @@ RUN mkdir -p /opt/input && \
     pip install -r /root/requirements.txt
 
 COPY src/prepare /root
+COPY src/common /root/common
 COPY entrypoint.prepare.sh /docker-entrypoint.sh
 
 RUN chmod +x /docker-entrypoint.sh

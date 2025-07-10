@@ -29,5 +29,6 @@ RUN apt-get update && \
 VOLUME [ "/xml", "/output" ]
 
 COPY src/sipp/sipp.py /root/sipp.py
+COPY src/common /root/common
 COPY entrypoint.sipp.sh /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]

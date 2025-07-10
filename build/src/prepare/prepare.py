@@ -2,13 +2,17 @@ import os
 import pathlib
 import yaml
 import traceback
+import sys
 
 import lxml.etree as ET
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-# Main thing here - we're using jinja2_time.TimeExtension
-# (https://github.com/hackebrot/jinja2-time)
+# Add common utilities to path
+sys.path.insert(0, '/root/common')
+from logger import setup_logger, get_log_level, ErrorReporter
+
+# Main thing here - we're using jinja2_time.TimeExtension (https://github.com/hackebrot/jinja2-time)
 env = Environment(
     loader=FileSystemLoader("/opt/input"),
     autoescape=select_autoescape(["xml"]),
@@ -17,6 +21,7 @@ env = Environment(
 
 env.datetime_format = "%Y-%m-%d %T"  # type: ignore (Ignoring as pylance not getting extension of jinja2_time.TimeExtension)
 
+websocket_proxy_needed = False
 
 # Scenario processing functions
 def scenario_from_template(scenario_name, config):
@@ -46,19 +51,18 @@ def scenario_from_template(scenario_name, config):
 
 def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
     '''
-    Funciton that returns dict of ET.ElementTree XML structures
-    for voip_patrol and database config
+    Funciton that returns dict of ET.ElementTree XML structures for voip_patrol and database config
     '''
     parser = ET.XMLParser(strip_cdata=False, remove_comments=True)
 
     try:
         root = ET.fromstring(scenario, parser)
     except Exception as e:
-        print(f"Problem processing {scenario} scenario: {e}")
+        logger.error(f"Problem processing {scenario} scenario: {e}")
         return None
 
     if root.tag != 'config':
-        print(f"Root element is not <config> in {scenario}")
+        logger.error(f"Root element is not <config> in {scenario}")
         return None
 
     scenario_tag = root.attrib.get('tag')
@@ -91,10 +95,7 @@ def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
 
 def write_scenarios(name, separate_scenarios):
     '''
-    Function to write separate scenarios to
-    /opt/output/<scenario_name>/voip_patrol.xml
-    and
-    /opt/output/<scenario_name>/database.xml
+    Function to write separate scenarios to /opt/output/<scenario_name>/voip_patrol.xml and /opt/output/<scenario_name>/database.xml
     '''
 
     # Strip the ".XML"
@@ -148,24 +149,28 @@ def get_vp_config(config, name='', log_level=0):
             # Relpace wss transport with tls
             if elem.attrib.get('transport') == 'wss':
                 elem.set('transport', 'tls')
+                # Raise a flag, that opensips proxy needs to be involved.
+                # It's a global var.
+                global websocket_proxy_needed
+                websocket_proxy_needed = True
                 # Set outbound proxy where it's supported
                 if elem.attrib.get('type') in ['call', 'register']:
                     proxy_tls_port = os.environ.get('OPENSIPS_TLS_PORT', 6051)
                     elem.set('proxy', f"127.0.0.1:{proxy_tls_port}")
+
             # Print a warning if we're missing some parameters, that known to voip_patrol to cause an errors
-            if log_level > 1:
-                if elem.attrib.get('type') == 'register':
-                    if (elem.attrib.get('username', '') == ''
-                            or elem.attrib.get('registrar', '') == ''
-                            or elem.attrib.get('password', '') == ''):
-                        print(f"{name}: Warning: username/registrar/password are empty in <register> action")
-                if elem.attrib.get('type') == 'accept':
-                    if elem.attrib.get('match_account', '') == '':
-                        print(f"{name}: Warning: match_account is empty in <accept> action")
-                if elem.attrib.get('type') == 'call':
-                    if (elem.attrib.get('caller', '') == ''
-                            or elem.attrib.get('callee', '') == ''):
-                        print(f"{name}: Warning: caller/callee are empty in <call> action")
+            if elem.attrib.get('type') == 'register':
+                if (elem.attrib.get('username', '') == ''
+                        or elem.attrib.get('registrar', '') == ''
+                        or elem.attrib.get('password', '') == ''):
+                    logger.warning(f"{name}: username/registrar/password are empty in <register> action")
+            if elem.attrib.get('type') == 'accept':
+                if elem.attrib.get('match_account', '') == '':
+                    logger.warning(f"{name}: match_account is empty in <accept> action")
+            if elem.attrib.get('type') == 'call':
+                if (elem.attrib.get('caller', '') == ''
+                        or elem.attrib.get('callee', '') == ''):
+                    logger.warning(f"{name}: caller/callee are empty in <call> action")
 
     root = ET.Element('config', attrib=None, nsmap=None)
     root.append(actions)
@@ -219,8 +224,7 @@ def process_scenario(name, combined_config, log_level, tags):
     if result_xml is None:
         return
 
-    if log_level >= 1:
-        print(f"Processing {name}")
+    logger.info(f"Processing {name}")
 
     separate_scenarios = separate_scenario(result_xml, combined_config, name, log_level, tags)
 
@@ -232,11 +236,10 @@ def process_scenario(name, combined_config, log_level, tags):
 # Main script starting
 
 
-# Log level for the console
-try:
-    log_level = int(os.environ.get("LOG_LEVEL", "1"))
-except (ValueError, TypeError):
-    log_level = 1
+# Initialize logging
+log_level = get_log_level()
+logger = setup_logger(__name__, log_level)
+error_reporter = ErrorReporter(logger)
 
 # Get tags if any
 tags = os.environ.get("TAG", "").split(',')
@@ -245,18 +248,17 @@ tags = tuple([x for x in tags if x])
 
 try:
 
-    if log_level >= 1:
-        print("Starting preparing template(s)...")
+    logger.info("Starting preparing template(s)...")
 
     try:
         os.remove("/opt/output/scenarios.done")
+        os.remove("/opt/output/websocket.need")
     except:
         pass
 
     with open(r"/opt/input/config.yaml") as config_file:
         filename = "config.yaml"
-        if log_level >= 1:
-            print("Reading config.yaml...")
+        logger.info("Reading config.yaml...")
         config = yaml.load(config_file, Loader=yaml.FullLoader)
 
     # Read main config.yaml and prepare python dicts
@@ -308,6 +310,9 @@ try:
             process_scenario(filename, combined_config, log_level, tags)
 
     pathlib.Path('/opt/output/scenarios.done').touch(mode=777)
+    if websocket_proxy_needed:
+        pathlib.Path('/opt/output/websocket.need').touch(mode=777)
+
 
 except Exception as e:
     tb = traceback.format_exc()
@@ -321,4 +326,5 @@ except Exception as e:
     except NameError:
         single_scenario = ""
 
-    print(f"[ERROR]: Error preparing\n File: {filename}\n Scenario: {single_scenario}\n Error: {e}\n Trace: {tb}")
+    error_reporter.add_error(f"Error preparing - File: {filename}, Scenario: {single_scenario}, Error: {e}", e)
+    logger.error(f"Trace: {tb}")

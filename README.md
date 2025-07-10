@@ -146,7 +146,7 @@ in a separate terminal window during running tests, or using local installation 
 ```sh
 $ sudo sngrep -L udp:127.0.0.1:8888 port 8888
 ```
-where `8888` is an `OPENSIPS_HEPD_PORT` specified in the `run.sh`.</br></br>
+where `8888` is the `OPENSIPS_HEPD_PORT` (can be configured with `--hepd-port` option).</br></br>
 Point, you need to use `turn` section of your `voip_patrol` configuration to make sure media is passing. See the example below.
 
 #### SIPP
@@ -257,7 +257,7 @@ Media check is also described in XML
 | --- | --- |
 | `type` | Mandatory. Media check test to be performed. Currently only `sox`. |
 | `file` | Mandatory. Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names and currently with `/output/` prefix due to container interconnection (will be fixed later), see the example below for a better picture |
-| `delete_after` | Do we delete file after media check? `yes`/`no`. `yes` by default |
+| `delete_after` | Do we delete file after media check? `yes`/`no`/`keep_failed`. `keep_failed` by default. This means we keep the file if the media test did not passed |
 | `print_debug` | Print debug info on file on the console while testing. Useful for adjusting `filter` parameters. `yes`/`no`. `no` by default |
 | `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
 
@@ -339,15 +339,30 @@ All number-like values are automatically treated as numbers and you can apply `-
 ```
 
 
-#### `run.sh` parameters
+### `run.sh` script
 
-Not that much to configure here, mostly you'll be interested in setting environment variables at the start of the script
+The `run.sh` script can be configured through command-line options (preferred) or environment variables:
+
+#### Command Line Options (Recommended)
+Use the command-line options described in the [Running](#running) section for most configuration needs.
+
+#### Environment Variables
+You can also set these environment variables to override default behavior:
+
 | Variable name | Description |
 | --- | --- |
-|`REPORT_TYPE` | Actually, the report type, that would be provided at the end. </br>`table` - print results in a table, only failed tests are printed. </br>`json` - print results in JSON format, only failed tests are printed. </br>`table_full`, `json_full` - print results in table or JSON respectively, but print full info on tests passed |
-| `LOG_LEVEL` | `voip_patrol`/`sipp`/`sox` log level on the console. In the case of the `sipp` scenarios debug it's useful to have this value equal to 3.</br>You can set this value using 2nd parameter while running single scenario |
+|`REPORT_TYPE` | Report type provided at the end: `table`, `json`, `table_full`, `json_full`. Can be overridden with `-r/--report` option |
+| `LOG_LEVEL` | `voip_patrol`/`sipp` log level on console (0-3). Can be overridden with `-l/--log-level` option |
+| `MAX_SINGLE_TEST_TIME` | Maximum time single test is allowed to run in seconds. Can be overridden with `-t/--timeout` option |
 
-There are other options available, check `run.sh`.
+#### Advanced Configuration
+Additional variables for advanced users:
+| Variable name | Description |
+| --- | --- |
+| `OPENSIPS_TLS_PORT` | OpenSIPS TLS port (default: 6051). Can be overridden with `--tls-port` option |
+| `OPENSIPS_WSS_PORT` | OpenSIPS WSS port (default: 9443). Can be overridden with `--wss-port` option |
+| `OPENSIPS_HEPS_PORT` | HEP source port (default: 8887). Can be overridden with `--heps-port` option |
+| `OPENSIPS_HEPD_PORT` | HEP destination port (default: 8888). Can be overridden with `--hepd-port` option |
 
 ## Results
 
@@ -376,7 +391,7 @@ As a result, you will have a table like this.
 Scenarios ['49-teams-follow-forward', '50-team-no-answer-forward'] are failed!
 ```
 That means your system is not OK, or something need to be tuned with the tests.</br>
-Not really much to describe here, just read info on the console.
+Not really much to describe here, just read info on the console
 
 ## Scenario Examples
 

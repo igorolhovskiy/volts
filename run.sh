@@ -2,8 +2,7 @@
 # Main user controlled variables
 # Report type to provide
 REPORT_TYPE='table_full'
-# First argument is the name of the scenario to run. (Optional)
-# Log level on console. Can be overrided as 2nd argument passing to the script.
+# Log level on console
 LOG_LEVEL=0
 # Timezone
 TIMEZONE=`timedatectl | grep 'Time zone' | cut -d ':' -f 2 | awk '{ print $1 }'`
@@ -236,21 +235,233 @@ run_scenario() {
     run_sipp
     run_database post
     run_media
-    cleanup_opensips_cache
+    if [ -f ${DIR_PREFIX}/tmp/input/websocket.need ]; then
+        cleanup_opensips_cache
+    fi
 }
 
 
+# Help function
+show_help() {
+    cat << EOF
+VOLTS (Voip Open Linear Tester Suite) - VoIP Functional Testing Framework
+
+Usage: $0 [OPTIONS] [SCENARIO]
+
+SCENARIO:
+    <scenario_name>     Run specific scenario (e.g., 001-register or scenarios/001-register.xml)
+    tag=<tags>          Run scenarios with specific tags (e.g., tag=set1,set2)
+    stop                Stop tests and delete all containers
+    sngrep              Launch SIP packet capture tool
+    dbclean             Clean up test data from databases
+
+OPTIONS:
+    -h, --help          Show this help message
+    -l, --log-level N   Set log level (0=silent, 1=normal, 2=verbose, 3=debug) [default: $LOG_LEVEL]
+    -r, --report TYPE   Set report type (table|json|table_full|json_full) [default: $REPORT_TYPE]
+    -t, --timeout N     Set maximum single test time in seconds [default: $MAX_SINGLE_TEST_TIME]
+    -v, --verbose       Enable verbose output (equivalent to -l 2)
+    -d, --debug         Enable debug output (equivalent to -l 3)
+    --tls-port N        Set OpenSIPS TLS port [default: $OPENSIPS_TLS_PORT]
+    --wss-port N        Set OpenSIPS WSS port [default: $OPENSIPS_WSS_PORT]
+    --heps-port N       Set HEP source port [default: $OPENSIPS_HEPS_PORT]
+    --hepd-port N       Set HEP destination port [default: $OPENSIPS_HEPD_PORT]
+
+EXAMPLES:
+    $0                          Run all scenarios
+    $0 001-register             Run specific scenario
+    $0 scenarios/001-register.xml  Run specific scenario with full path
+    $0 tag=sipp,media           Run scenarios tagged as sipp or media
+    $0 -l 3 001-register        Run scenario with debug logging
+    $0 -r json -v               Run all scenarios with JSON output and verbose logging
+    $0 --timeout 300 001-register  Run scenario with 5-minute timeout
+    $0 stop                     Stop all containers
+    $0 sngrep                   Launch SIP packet capture
+    $0 dbclean                  Clean up databases
+
+ENVIRONMENT VARIABLES:
+    REPORT_TYPE         Override default report type
+    LOG_LEVEL           Override default log level
+    MAX_SINGLE_TEST_TIME Override default timeout
+
+EOF
+}
+
+# Parse command line arguments
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -l|--log-level)
+                if [[ -n "$2" && "$2" =~ ^[0-3]$ ]]; then
+                    LOG_LEVEL="$2"
+                    shift 2
+                else
+                    echo "Error: --log-level requires a number between 0-3" >&2
+                    exit 1
+                fi
+                ;;
+            -r|--report)
+                if [[ -n "$2" && "$2" =~ ^(table|json|table_full|json_full)$ ]]; then
+                    REPORT_TYPE="$2"
+                    shift 2
+                else
+                    echo "Error: --report must be one of: table, json, table_full, json_full" >&2
+                    exit 1
+                fi
+                ;;
+            -t|--timeout)
+                if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                    MAX_SINGLE_TEST_TIME="$2"
+                    shift 2
+                else
+                    echo "Error: --timeout requires a positive number" >&2
+                    exit 1
+                fi
+                ;;
+            -v|--verbose)
+                LOG_LEVEL=2
+                shift
+                ;;
+            -d|--debug)
+                LOG_LEVEL=3
+                shift
+                ;;
+            --tls-port)
+                if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                    OPENSIPS_TLS_PORT="$2"
+                    shift 2
+                else
+                    echo "Error: --tls-port requires a valid port number" >&2
+                    exit 1
+                fi
+                ;;
+            --wss-port)
+                if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                    OPENSIPS_WSS_PORT="$2"
+                    shift 2
+                else
+                    echo "Error: --wss-port requires a valid port number" >&2
+                    exit 1
+                fi
+                ;;
+            --heps-port)
+                if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                    OPENSIPS_HEPS_PORT="$2"
+                    shift 2
+                else
+                    echo "Error: --heps-port requires a valid port number" >&2
+                    exit 1
+                fi
+                ;;
+            --hepd-port)
+                if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                    OPENSIPS_HEPD_PORT="$2"
+                    shift 2
+                else
+                    echo "Error: --hepd-port requires a valid port number" >&2
+                    exit 1
+                fi
+                ;;
+            stop|sngrep|dbclean)
+                # Special commands - preserve existing behavior
+                if [[ -z "$SCENARIO" ]]; then
+                    SCENARIO="$1"
+                else
+                    echo "Error: Multiple scenarios specified" >&2
+                    exit 1
+                fi
+                shift
+                ;;
+            tag=*|-tag=*|--tag=*)
+                # Tag specification - preserve existing behavior
+                if [[ -z "$SCENARIO" ]]; then
+                    SCENARIO="$1"
+                else
+                    echo "Error: Multiple scenarios specified" >&2
+                    exit 1
+                fi
+                shift
+                ;;
+            -*)
+                echo "Error: Unknown option $1" >&2
+                echo "Use $0 --help for usage information" >&2
+                exit 1
+                ;;
+            *)
+                # Regular scenario name
+                if [[ -z "$SCENARIO" ]]; then
+                    SCENARIO="$1"
+                else
+                    echo "Error: Multiple scenarios specified" >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+}
+
 # Script controlled variables
 DIR_PREFIX=`pwd`
-# First arument - single test to run
-SCENARIO="$1"
+SCENARIO=""
 
-# Second argument - default log level
-LOG_LEVEL="${2:-${LOG_LEVEL}}"
+# Parse command line arguments
+parse_arguments "$@"
 
 mkdir -p tmp/input
 mkdir -p tmp/output
 
+# Handle special commands first
+if [ "x${SCENARIO}" == "xstop" ]; then
+    echo -n "Stopping and deleting containers..."
+    delete_containers
+    echo " Done"
+    exit 0
+fi
+
+if [ "x${SCENARIO}" == "xsngrep" ]; then
+    if [ `docker ps | grep -c ${PROXY_CONTAINER_NAME}` == 1 ]; then
+        echo "Starting sngrep in docker..."
+        docker exec -it ${PROXY_CONTAINER_NAME} sngrep -L udp:127.0.0.1:${OPENSIPS_HEPD_PORT}
+        echo "Done"
+    else
+        echo "Cannot find ${PROXY_CONTAINER_NAME}. Make sure you have VOLTS running"
+    fi
+    exit 0
+fi
+
+if [ "x${SCENARIO}" == "xdbclean" ]; then
+    echo -n "Cleaning up database(s)"
+    rm -f tmp/input/scenarios.done
+    rm -f tmp/input/websocket.need
+    unset SCENARIO
+    run_prepare
+    for D in ${DIR_PREFIX}/tmp/input/*; do
+        CURRENT_SCENARIO=`basename ${D}`
+        run_database post
+        echo -n .
+    done
+    echo " Done."
+    exit 0
+fi
+
+# Handle tag specification
+if [ "`echo ${SCENARIO} | cut -c1-4`" == "tag=" ]; then
+    PREPARE_TAG=`echo ${SCENARIO} | cut -c5-`
+    unset SCENARIO
+elif [ "`echo ${SCENARIO} | cut -c1-5`" == "-tag=" ]; then
+    PREPARE_TAG=`echo ${SCENARIO} | cut -c6-`
+    unset SCENARIO
+elif [ "`echo ${SCENARIO} | cut -c1-6`" == "--tag=" ]; then
+    PREPARE_TAG=`echo ${SCENARIO} | cut -c7-`
+    unset SCENARIO
+fi
+
+# Process scenario name
 if [ "x${SCENARIO}" != "x" ]; then
     SCENARIO=`basename ${SCENARIO} | cut -f 1 -d .`
 fi
@@ -287,48 +498,9 @@ SIPP_RESULT_FILE="sipp.jsonl"
 PROXY_CONTAINER_NAME=volts_opensips
 PROXY_IMAGE=volts_opensips:latest
 
-# Special word - STOP. Stop here
-if [ "x${SCENARIO}" == "xstop" ]; then
-    echo -n "Stopping and deleting containers..."
-    delete_containers
-    echo " Done"
-    exit 0
-fi
-
-# Special word - 'sngrep'. Just launch sngrep in a docker container
-if [ "x${SCENARIO}" == "xsngrep" ]; then
-    if [ `docker ps | grep -c ${PROXY_CONTAINER_NAME}` == 1 ]; then
-        echo "Starting sngrep in docker..."
-        docker exec -it ${PROXY_CONTAINER_NAME} sngrep -L udp:127.0.0.1:${OPENSIPS_HEPD_PORT}
-        echo "Done"
-    else
-        echo "Cannot find ${PROXY_CONTAINER_NAME}. Make sure you have VOLTS running"
-    fi
-    exit 0
-fi
-
-# Special word - 'dbclean'. Cleaning up database
-if [ "x${SCENARIO}" == "xdbclean" ]; then
-    echo -n "Cleaning up database(s)"
-    rm -f tmp/input/scenarios.done
-    unset SCENARIO
-    run_prepare
-    for D in ${DIR_PREFIX}/tmp/input/*; do
-        CURRENT_SCENARIO=`basename ${D}`
-        run_database post
-        echo -n .
-    done
-    echo " Done."
-    exit 0
-fi
-
-# Special word - 'tag='. Here you can specify which tag(s) you want to run
-if [ "`echo ${SCENARIO} | cut -c1-4`" == "tag=" ]; then
-    PREPARE_TAG=`echo ${SCENARIO} | cut -c5-`
-    unset SCENARIO
-fi
 
 rm -f tmp/input/scenarios.done
+rm -f tmp/input/websocket.need
 run_prepare
 
 if [ ! -f ${DIR_PREFIX}/tmp/input/scenarios.done ]; then
@@ -345,7 +517,9 @@ rm -f ${DIR_PREFIX}/tmp/output/${SIPP_RESULT_FILE}
 delete_containers
 
 # Start WSS-TLS proxy
-control_opensips start
+if [ -f ${DIR_PREFIX}/tmp/input/websocket.need ]; then
+    control_opensips start
+fi
 
 if [ -z ${SCENARIO} ]; then
     for D in ${DIR_PREFIX}/tmp/input/*; do
@@ -358,7 +532,9 @@ else
 fi
 
 # Stop WSS-TLS proxy
-control_opensips stop
+if [ -f ${DIR_PREFIX}/tmp/input/websocket.need ]; then
+    control_opensips stop
+fi
 
 # report
 R_IMAGE=volts_report:latest

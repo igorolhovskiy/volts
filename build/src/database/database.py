@@ -63,36 +63,57 @@ def get_db_connection(db_options):
         )
 
 
-def preform_db_operations(db_options, db_actions, log_level = 1):
+def preform_db_operations(db_options, db_actions, log_level = 1, logger=None):
     '''
     Actually preform operations on database.
     Point, we're committing every table action.
     If we have continue_on_error != true, than next table statements are not proceeded
     '''
-    db_conn = get_db_connection(db_options)
-    if not db_conn:
-        return f"Cannot connect to database due to database module {db_options.get('type')} is not available"
-    db_cursor = db_conn.cursor()
+    try:
+        db_conn = get_db_connection(db_options)
+        if not db_conn:
+            return f"Cannot connect to database due to database module {db_options.get('type')} is not available"
+        db_cursor = db_conn.cursor()
+    except Exception as e:
+        error_msg = f"Database connection failed: {e}"
+        if logger:
+            logger.error(error_msg)
+        return error_msg
+    
     error = ""
 
     for db_action in db_actions:
         for table, table_actions in db_action.items():
             if log_level >= 1:
-                print(f"Preforming <{table_actions['type'].upper()}> action on table <{table}>...")
+                log_msg = f"Preforming <{table_actions['type'].upper()}> action on table <{table}>..."
+                if logger:
+                    logger.info(log_msg)
+                else:
+                    print(log_msg)
 
             sql_stmt = None
-            if table_actions['type'] == 'replace':
-                sql_stmt = form_replace_statement(table, table_actions['name'])
-            elif table_actions['type'] == 'insert':
-                sql_stmt = form_insert_statement(table, table_actions['name'])
-            elif table_actions['type'] == 'delete':
-                sql_stmt = form_delete_statement(table, table_actions['name'])
+            try:
+                if table_actions['type'] == 'replace':
+                    sql_stmt = form_replace_statement(table, table_actions['name'])
+                elif table_actions['type'] == 'insert':
+                    sql_stmt = form_insert_statement(table, table_actions['name'])
+                elif table_actions['type'] == 'delete':
+                    sql_stmt = form_delete_statement(table, table_actions['name'])
+            except ValueError as e:
+                error += f"[DATABASE][VALIDATION ERROR]: {e} "
+                if table_actions['continue_on_error']:
+                    continue
+                raise Exception(f"[DATABASE][VALIDATION ERROR]: {e}")
 
             if sql_stmt is None:
                 continue
 
             if log_level >= 3:
-                print(f"SQL statement: {sql_stmt} / {table_actions['value']}")
+                log_msg = f"SQL statement: {sql_stmt} / {table_actions['value']}"
+                if logger:
+                    logger.debug(log_msg)
+                else:
+                    print(log_msg)
 
             try:
                 db_cursor.execute(sql_stmt, table_actions['value'])
@@ -107,8 +128,38 @@ def preform_db_operations(db_options, db_actions, log_level = 1):
     return error
 
 
+def _validate_identifier(identifier):
+    """
+    Validate SQL identifier (table name, column name) to prevent SQL injection.
+    Only allows alphanumeric characters, underscores, and dots.
+    """
+    if not identifier:
+        return False
+    # Allow alphanumeric, underscore, and dot (for schema.table notation)
+    if not re.match(r'^[a-zA-Z0-9_\.]+$', identifier):
+        return False
+    # Check for reserved keywords (basic list, extend as needed)
+    reserved_words = {
+        'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER',
+        'UNION', 'WHERE', 'ORDER', 'GROUP', 'HAVING', 'FROM', 'JOIN'
+    }
+    if identifier.upper() in reserved_words:
+        return False
+    return True
+
+
 def form_insert_statement(table, fields):
-    sql = f"INSERT INTO {table} ("
+    """
+    Form INSERT statement with proper validation to prevent SQL injection.
+    """
+    if not _validate_identifier(table):
+        raise ValueError(f"Invalid table name: {table}")
+    
+    for field in fields:
+        if not _validate_identifier(field):
+            raise ValueError(f"Invalid field name: {field}")
+    
+    sql = f"INSERT INTO `{table}` ("
     sql += "`" + "`,`".join(fields) + "`"
     sql += ") VALUES ("
     sql += ",".join(['%s'] * len(fields))
@@ -118,7 +169,17 @@ def form_insert_statement(table, fields):
 
 
 def form_replace_statement(table, fields):
-    sql = f"REPLACE INTO {table} ("
+    """
+    Form REPLACE statement with proper validation to prevent SQL injection.
+    """
+    if not _validate_identifier(table):
+        raise ValueError(f"Invalid table name: {table}")
+    
+    for field in fields:
+        if not _validate_identifier(field):
+            raise ValueError(f"Invalid field name: {field}")
+    
+    sql = f"REPLACE INTO `{table}` ("
     sql += "`" + "`,`".join(fields) + "`"
     sql += ") VALUES ("
     sql += ",".join(['%s'] * len(fields))
@@ -128,7 +189,17 @@ def form_replace_statement(table, fields):
 
 
 def form_delete_statement(table, fields):
-    sql = f"DELETE FROM {table} WHERE "
+    """
+    Form DELETE statement with proper validation to prevent SQL injection.
+    """
+    if not _validate_identifier(table):
+        raise ValueError(f"Invalid table name: {table}")
+    
+    for field in fields:
+        if not _validate_identifier(field):
+            raise ValueError(f"Invalid field name: {field}")
+    
+    sql = f"DELETE FROM `{table}` WHERE "
     for field in fields:
         sql += f"`{field}` = %s AND "
     sql += "1 = 1"
@@ -148,11 +219,11 @@ def write_report(filename, report):
 
     filename_path = f"/output/{filename}"
     try:
-        f_report = open(filename_path, "a")
-        f_report.seek(0, 2)
-        f_report.write(report_line)
-        f_report.close()
-    except:
+        with open(filename_path, "a") as f_report:
+            f_report.seek(0, 2)
+            f_report.write(report_line)
+    except (IOError, OSError) as e:
+        print(f"Warning: Could not write report to {filename_path}: {e}")
         pass
 
 
@@ -160,17 +231,19 @@ def write_report(filename, report):
 scenario_name = os.environ.get("SCENARIO")
 # sage can be pre - running before voip_patrol to populate database and post - to clean up.
 scenario_stage = os.environ.get("STAGE", "pre")
-# Log level for the console
-try:
-    log_level = int(os.environ.get("LOG_LEVEL", "1"))
-except ValueError:
-    log_level = 1
-
 report_file = os.environ.get("RESULT_FILE", "database.jsonl")
+
+# Initialize logging
+log_level = get_log_level()
+logger = setup_logger(__name__, log_level)
+error_reporter = ErrorReporter(logger)
+
+logger.info(f"Starting database operations for scenario: {scenario_name}, stage: {scenario_stage}")
+logger.debug(f"Report file: {report_file}, Log level: {log_level}")
 
 scenario_file = f"/xml/{scenario_name}.xml"
 if not os.path.exists(scenario_file):
-    print(f"Database scenario file is absent for {scenario_name}/{scenario_stage}, skipping...")
+    logger.info(f"Database scenario file is absent for {scenario_name}/{scenario_stage}, skipping...")
     sys.exit(0)
 
 report = {}
@@ -297,11 +370,11 @@ for action in actions:
         db_actions.append(db_action)
 
     try:
-        report['error'] += preform_db_operations(db_options, db_actions, log_level)
+        report['error'] += preform_db_operations(db_options, db_actions, log_level, logger)
     except Exception as e:
         error_string = f"[DATABASE][ERROR]: {e}"
         report['error'] = error_string
-        print(error_string)
+        error_reporter.add_error(error_string, e)
         break
 
 write_report(report_file, report)

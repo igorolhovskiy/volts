@@ -8,6 +8,7 @@ RUN mkdir -p /opt/scenarios && \
     pip install -r /root/requirements.txt
 
 COPY src/report/report.py /root/report.py
+COPY src/common /root/common
 COPY entrypoint.report.sh /docker-entrypoint.sh
 
 RUN chmod +x /docker-entrypoint.sh

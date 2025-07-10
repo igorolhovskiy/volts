@@ -320,9 +320,7 @@ def filter_results_default(test_results):
     printed_results = {}
     errors = list()
 
-
     for scenario_name, scenario_details in test_results.items():
-        print(f"Processing {scenario_name}")
         if scenario_details.get("status") == "PASS":
             continue
 
@@ -389,13 +387,22 @@ def print_table(print_results):
     tbl.align = "r"
     print(tbl)
 
+
+def print_failed_scenarios_details(failed_scenarios, test_results):
+    for failed_scenario in failed_scenarios:
+        print(f"Scenario {failed_scenario} details:")
+        print(json.dumps(test_results[failed_scenario], sort_keys=True, indent=4))
+
+
 def print_results_json_full(test_results):
     failed_scenarios, printed_results = filter_results_default(test_results)
 
     print(json.dumps(printed_results, sort_keys=True, indent=4))
 
     if failed_scenarios is not None:
+        print_failed_scenarios_details(failed_scenarios, test_results)
         print(f"Scenarios {failed_scenarios} are failed!")
+
         return
 
     print("All scenarios are OK!")
@@ -407,10 +414,13 @@ def print_results_table_default(test_results):
 
     if failed_scenarios is not None:
         print_table(printed_results)
+        print_failed_scenarios_details(failed_scenarios, test_results)
         print(f"Scenarios {failed_scenarios} are failed!")
+
         return
 
     print("All scenarios are OK!")
+
 
 def print_results_json_default(test_results):
 
@@ -419,9 +429,12 @@ def print_results_json_default(test_results):
     if failed_scenarios is not None:
         print(json.dumps(printed_results, sort_keys=True, indent=4))
         print(f"Scenarios {failed_scenarios} are failed!")
+        print_failed_scenarios_details(failed_scenarios, test_results)
+
         return
 
     print("All scenarios are OK!")
+
 
 def print_results_table_full(test_results):
     failed_scenarios, _ = filter_results_default(test_results)
@@ -429,7 +442,9 @@ def print_results_table_full(test_results):
     print_table(test_results)
 
     if failed_scenarios is not None:
+        print_failed_scenarios_details(failed_scenarios, test_results)
         print(f"Scenarios {failed_scenarios} are failed!")
+
         return
 
     print("All scenarios are OK!")
