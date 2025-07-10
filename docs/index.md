@@ -451,13 +451,13 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
                     <field name="username" value="{{ a.90011.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
                     <field name="ha1" value="{{ a.90011.ha1 }}"/>
-                    <field name="password" value="{% now 'local' %}"/>
+                    <field name="password" value="{{ 'now' | date: '%Y-%m-%d %H:%M:%S' }}"/>
                 </table>
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.90012.username }}"/>
                     <field name="domain" value="{{ c.domain }}"/>
                     <field name="ha1" value="{{ a.90012.ha1 }}"/>
-                    <field name="password" value="{% now 'local' + 'days=1', '%D' %}"/>
+                    <field name="password" value="{{ 'now' | date: '%m/%d/%y' }}"/>
                 </table>
             </action>
         </actions>
