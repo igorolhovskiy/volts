@@ -1,0 +1,25 @@
+# Jekyll build outputs
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# Bundle
+vendor/
+.bundle/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log

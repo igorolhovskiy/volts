@@ -1,0 +1,13 @@
+<footer class="site-footer">
+    <div class="footer-content">
+        <p>&copy; {{ 'now' | date: "%Y" }} VOLTS Project. Open source VoIP testing framework.</p>
+        <p>
+            <a href="https://github.com/{{ site.repository }}" class="text-link">View on GitHub</a>
+            {% if site.feed and site.feed.path %} | <a href="{{ site.feed.path | relative_url }}" class="text-link">RSS Feed</a>{% endif %}
+            | <a href="#overview" class="text-link">Back to Top</a>
+        </p>
+        <p>
+            Built with <a href="https://jekyllrb.com/" class="text-link">Jekyll</a> and ❤️ for the VoIP community
+        </p>
+    </div>
+</footer>

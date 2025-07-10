@@ -1,0 +1,383 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+/* Custom VOLTS styling based on existing design */
+
+/* Reset and base styles */
+* {
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    color: #000;
+    font-size: 16px;
+    line-height: 26px;
+    background-color: #fcf8f1;
+    overflow-x: hidden;
+    margin: 0;
+}
+
+/* Navigation */
+.navigation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 290px;
+    background-color: #B2DBD5;
+    height: 100vh;
+    z-index: 1000;
+}
+
+.logo {
+    height: max-content;
+    width: 100%;
+    display: inline-block;
+    padding: 20px;
+    text-align: center;
+    background-color: #FA8D62;
+    font-family: monospace;
+    letter-spacing: 2px;
+    font-size: 40px;
+    line-height: 40px;
+    font-weight: 700;
+    text-decoration: none;
+    color: #000;
+}
+
+.nav-img {
+    width: 60%;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.menu {
+    padding-left: 30px;
+    padding-right: 10px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+.menu__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu .menu {
+    padding-left: 15px;
+    padding-right: 0;
+}
+
+.menu .menu .menu {
+    padding-left: 15px;
+    padding-right: 0;
+}
+
+.menu__item {
+    margin: 10px 0;
+}
+
+.menu__link {
+    position: relative;
+    color: #000;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.menu__link:hover,
+.menu__link.active {
+    color: #FA8D62;
+}
+
+.menu__link--main {
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Documentation content */
+.documentation {
+    position: absolute;
+    top: 0;
+    left: 300px;
+    padding: 10px 25px 10px 40px;
+    max-width: calc(100vw - 300px);
+    min-height: 100vh;
+}
+
+/* Typography */
+.title {
+    font-size: 24px;
+    line-height: 30px;
+    font-weight: 700;
+    padding-bottom: 5px;
+    border-bottom: 2px solid rgba(175, 184, 193, 0.4);
+    margin-top: 45px;
+    margin-bottom: 20px;
+}
+
+.title--main {
+    font-size: 42px;
+    line-height: 46px;
+    border: none;
+    margin-top: 20px;
+}
+
+.title--mini {
+    font-size: 20px;
+    line-height: 26px;
+    border: none;
+    margin-top: 30px;
+}
+
+.title--little {
+    font-size: 18px;
+    line-height: 24px;
+    border: none;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+/* Links */
+a {
+    color: #000;
+    text-decoration: none;
+}
+
+.text-link {
+    padding: 1px 5px;
+    font-family: monospace;
+    border-radius: 5px;
+    transition: .3s;
+    color: inherit;
+}
+
+.text-link:hover {
+    color: #FA8D62;
+    background-color: rgba(175, 184, 193, 0.2);
+}
+
+.text-link:visited {
+    background-color: rgba(175, 184, 193, 0.1);
+}
+
+/* Code blocks */
+.code,
+pre,
+code {
+    display: block;
+    padding: 8px 12px;
+    background-color: #afb2b433;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 10px 0;
+}
+
+.highlight pre {
+    background-color: #afb2b433;
+    border-radius: 10px;
+    padding: 12px;
+    overflow-x: auto;
+}
+
+/* Inline code */
+p code,
+li code,
+td code {
+    display: inline;
+    padding: 2px 6px;
+    background-color: #afb2b433;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* Tables */
+.table,
+table {
+    background-color: #afb2b433;
+    width: 100%;
+    padding: 10px;
+    border-collapse: collapse;
+    margin: 15px 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table__cell,
+th,
+td {
+    border: 1px solid #000;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.table__row--main,
+th {
+    font-weight: 700;
+    background-color: rgba(175, 184, 193, 0.2);
+}
+
+table code {
+    font-family: monospace;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Lists */
+ul {
+    list-style-type: disc;
+    padding-left: 20px;
+}
+
+ol {
+    padding-left: 20px;
+}
+
+li {
+    margin: 5px 0;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+/* Blockquotes */
+blockquote {
+    border-left: 4px solid #FA8D62;
+    padding-left: 16px;
+    margin: 20px 0;
+    font-style: italic;
+    color: #555;
+}
+
+/* Horizontal rules */
+hr {
+    border: none;
+    height: 2px;
+    background-color: rgba(175, 184, 193, 0.4);
+    margin: 30px 0;
+}
+
+/* Footer */
+.site-footer {
+    margin-top: 60px;
+    padding: 30px 0;
+    border-top: 2px solid rgba(175, 184, 193, 0.4);
+    color: #666;
+}
+
+.footer-content {
+    text-align: center;
+}
+
+.footer-content p {
+    margin: 10px 0;
+}
+
+/* Stand with Ukraine banner */
+img[src*="StandWithUkraine"] {
+    display: block;
+    margin: 20px auto;
+    max-width: 400px;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    body {
+        font-size: 15px;
+    }
+    
+    .navigation {
+        width: 230px;
+        font-size: 14px;
+    }
+    
+    .documentation {
+        left: 230px;
+        max-width: calc(100vw - 230px);
+    }
+    
+    .menu__item {
+        font-size: 14px;
+        line-height: 16px;
+    }
+    
+    .menu .menu {
+        padding-left: 10px;
+    }
+}
+
+@media (max-width: 800px) {
+    body {
+        font-size: 14px;
+        line-height: 23px;
+    }
+    
+    .navigation {
+        width: 100vw;
+        height: max-content;
+        position: static;
+        padding-bottom: 10px;
+    }
+    
+    .documentation {
+        position: static;
+        width: 100vw;
+        max-width: unset;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .title--main {
+        font-size: 32px;
+        line-height: 36px;
+    }
+    
+    .title {
+        font-size: 20px;
+        line-height: 24px;
+    }
+    
+    .code,
+    pre {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+    
+    .table,
+    table {
+        font-size: 12px;
+    }
+    
+    .table__cell,
+    th,
+    td {
+        padding: 6px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .title--main {
+        font-size: 28px;
+        line-height: 32px;
+    }
+    
+    .logo {
+        font-size: 28px;
+        line-height: 28px;
+        padding: 15px;
+    }
+    
+    .documentation {
+        padding: 10px 10px;
+    }
+}

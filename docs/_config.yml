@@ -1,0 +1,67 @@
+# Site settings
+title: VOLTS - VoIP Open Linear Tester Suite
+description: >-
+  Functional tests for VoIP systems based on voip_patrol, sipp, sox, opensips, and docker.
+  A comprehensive framework for testing VoIP infrastructure with sequential test scenarios.
+
+baseurl: ""
+url: "https://volts.provoip.org"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# Custom variables
+repository: "igorolhovskiy/volts"
+github_username: igorolhovskiy
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+
+# Navigation
+navigation:
+  - title: "Overview"
+    url: "#overview"
+  - title: "Getting Started"
+    url: "#getting-started"
+    subnav:
+      - title: "Building"
+        url: "#building"
+      - title: "Running"
+        url: "#running"
+  - title: "Configuration"
+    url: "#configuration"
+    subnav:
+      - title: "Scenarios"
+        url: "#scenarios"
+      - title: "Global Config"
+        url: "#global-config"
+      - title: "Database"
+        url: "#database"
+      - title: "Media Check"
+        url: "#media-check"
+  - title: "Examples"
+    url: "#examples"
+    subnav:
+      - title: "Basic Tests"
+        url: "#basic-tests"
+      - title: "Advanced Scenarios"
+        url: "#advanced-scenarios"
+      - title: "SIPP Tests"
+        url: "#sipp-tests"
+  - title: "Results"
+    url: "#results"
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
