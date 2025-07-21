@@ -405,6 +405,11 @@ parse_arguments() {
     done
 }
 
+clean_tmp() {
+    rm -rf tmp/input/*
+    rm -rf tmp/input/*
+}
+
 # Script controlled variables
 DIR_PREFIX=`pwd`
 SCENARIO=""
@@ -414,57 +419,6 @@ parse_arguments "$@"
 
 mkdir -p tmp/input
 mkdir -p tmp/output
-
-# Handle special commands first
-if [ "x${SCENARIO}" == "xstop" ]; then
-    echo -n "Stopping and deleting containers..."
-    delete_containers
-    echo " Done"
-    exit 0
-fi
-
-if [ "x${SCENARIO}" == "xsngrep" ]; then
-    if [ `docker ps | grep -c ${PROXY_CONTAINER_NAME}` == 1 ]; then
-        echo "Starting sngrep in docker..."
-        docker exec -it ${PROXY_CONTAINER_NAME} sngrep -L udp:127.0.0.1:${OPENSIPS_HEPD_PORT}
-        echo "Done"
-    else
-        echo "Cannot find ${PROXY_CONTAINER_NAME}. Make sure you have VOLTS running"
-    fi
-    exit 0
-fi
-
-if [ "x${SCENARIO}" == "xdbclean" ]; then
-    echo -n "Cleaning up database(s)"
-    rm -f tmp/input/scenarios.done
-    rm -f tmp/input/websocket.need
-    unset SCENARIO
-    run_prepare
-    for D in ${DIR_PREFIX}/tmp/input/*; do
-        CURRENT_SCENARIO=`basename ${D}`
-        run_database post
-        echo -n .
-    done
-    echo " Done."
-    exit 0
-fi
-
-# Handle tag specification
-if [ "`echo ${SCENARIO} | cut -c1-4`" == "tag=" ]; then
-    PREPARE_TAG=`echo ${SCENARIO} | cut -c5-`
-    unset SCENARIO
-elif [ "`echo ${SCENARIO} | cut -c1-5`" == "-tag=" ]; then
-    PREPARE_TAG=`echo ${SCENARIO} | cut -c6-`
-    unset SCENARIO
-elif [ "`echo ${SCENARIO} | cut -c1-6`" == "--tag=" ]; then
-    PREPARE_TAG=`echo ${SCENARIO} | cut -c7-`
-    unset SCENARIO
-fi
-
-# Process scenario name
-if [ "x${SCENARIO}" != "x" ]; then
-    SCENARIO=`basename ${SCENARIO} | cut -f 1 -d .`
-fi
 
 # prepare
 P_IMAGE=volts_prepare:latest
@@ -498,9 +452,60 @@ SIPP_RESULT_FILE="sipp.jsonl"
 PROXY_CONTAINER_NAME=volts_opensips
 PROXY_IMAGE=volts_opensips:latest
 
+# Handle special commands first
+if [ "x${SCENARIO}" == "xstop" ]; then
+    echo -n "Stopping and deleting containers..."
+    delete_containers
+    echo " Done"
+    exit 0
+fi
 
-rm -f tmp/input/scenarios.done
-rm -f tmp/input/websocket.need
+if [ "x${SCENARIO}" == "xsngrep" ]; then
+    if [ `docker ps | grep -c ${PROXY_CONTAINER_NAME}` == 1 ]; then
+        echo "Starting sngrep in docker..."
+        docker exec -it ${PROXY_CONTAINER_NAME} sngrep -L udp:127.0.0.1:${OPENSIPS_HEPD_PORT}
+        echo "Done"
+    else
+        echo "Cannot find ${PROXY_CONTAINER_NAME}. Make sure you have VOLTS running"
+    fi
+    exit 0
+fi
+
+if [ "x${SCENARIO}" == "xdbclean" ]; then
+    echo -n "Cleaning up database(s)"
+
+    clean_tmp
+    unset SCENARIO
+    run_prepare
+
+    for D in ${DIR_PREFIX}/tmp/input/*; do
+        CURRENT_SCENARIO=`basename ${D}`
+        run_database post
+        echo -n .
+    done
+
+    echo " Done."
+    exit 0
+fi
+
+# Handle tag specification
+if [ "`echo ${SCENARIO} | cut -c1-4`" == "tag=" ]; then
+    PREPARE_TAG=`echo ${SCENARIO} | cut -c5-`
+    unset SCENARIO
+elif [ "`echo ${SCENARIO} | cut -c1-5`" == "-tag=" ]; then
+    PREPARE_TAG=`echo ${SCENARIO} | cut -c6-`
+    unset SCENARIO
+elif [ "`echo ${SCENARIO} | cut -c1-6`" == "--tag=" ]; then
+    PREPARE_TAG=`echo ${SCENARIO} | cut -c7-`
+    unset SCENARIO
+fi
+
+# Process scenario name
+if [ "x${SCENARIO}" != "x" ]; then
+    SCENARIO=`basename ${SCENARIO} | cut -f 1 -d .`
+fi
+
+clean_tmp
 run_prepare
 
 if [ ! -f ${DIR_PREFIX}/tmp/input/scenarios.done ]; then

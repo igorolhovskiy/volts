@@ -23,6 +23,7 @@ env.datetime_format = "%Y-%m-%d %T"  # type: ignore (Ignoring as pylance not get
 
 websocket_proxy_needed = False
 
+
 # Scenario processing functions
 def scenario_from_template(scenario_name, config):
     '''
@@ -44,14 +45,19 @@ def scenario_from_template(scenario_name, config):
     # We're adding scenario (file) name to be accessible in template variables
     current_scenario_name = scenario_name.split(".")[0]
 
-    result_scenario = template.render(c=config["c"], a=config["a"], g=config["c"], d=config["d"], scenario_name=current_scenario_name)
+    result_scenario = template.render(c=config["c"],
+                                      a=config["a"],
+                                      g=config["c"],
+                                      d=config["d"],
+                                      scenario_name=current_scenario_name)
 
     return result_scenario
 
 
 def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
     '''
-    Funciton that returns dict of ET.ElementTree XML structures for voip_patrol and database config
+    Funciton that returns dict of ET.ElementTree XML structures
+    for voip_patrol and database config
     '''
     parser = ET.XMLParser(strip_cdata=False, remove_comments=True)
 
@@ -65,8 +71,10 @@ def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
         logger.error(f"Root element is not <config> in {scenario}")
         return None
 
-    scenario_tag = root.attrib.get('tag')
-    if len(tags) > 0 and scenario_tag not in tags:
+    scenario_tags = root.attrib.get('tag').split(',')
+    scenario_tags = set([x for x in scenario_tags if x])
+
+    if len(tags) > 0 and len(scenario_tags.intersection(tags)) == 0:
         return None
 
     separate_scenarios = {}

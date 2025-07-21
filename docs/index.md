@@ -9,8 +9,6 @@ title: Home
 ## VoIP Open Linear Tester Suite
 {: .title.title--little}
 
-[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct.svg)](https://stand-with-ukraine.pp.ua)
-
 Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/).
 
 ## Overview
@@ -659,6 +657,16 @@ You can specify a `tag` on each test scenario:
 
 ```xml
 <config tag='set1'>
+    <section type="voip_patrol">
+        <!-- Test configuration -->
+    </section>
+</config>
+```
+
+Multiple tags per scenario are supported:
+
+```xml
+<config tag='set1,set3'>
     <section type="voip_patrol">
         <!-- Test configuration -->
     </section>

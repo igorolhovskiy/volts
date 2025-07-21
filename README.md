@@ -1098,12 +1098,15 @@ and some load as well. Why not?
 </config>
 ```
 ### Running only selected tests.
-You can specify a `tag` on each test scenario, just adding an attribute to a `config` element.
+You can specify a `tag` (one or several comma-separated) on each test scenario, just adding a `tag` attribute to a `config` element.
 ```xml
 <config tag='set1'>
-    <section type="voip_patrol">
-        ...
-    </section>
+    ...
+</config>
+```
+```xml
+<config tag='set1,set3'>
+    ...
 </config>
 ```
 Specify a tag by running
