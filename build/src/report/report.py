@@ -1,6 +1,13 @@
 import json
 import os
+import sys
+
 from prettytable import PrettyTable
+
+sys.path.insert(0, '/root/common')
+
+from json_print import custom_json_dump
+
 
 def process_jsonl_file(file):
     """
@@ -19,6 +26,7 @@ def process_jsonl_file(file):
 
     return error, processed_data
 
+
 def get_tests_list():
     """
     Function to get all tests lists from all tests directory.
@@ -31,6 +39,7 @@ def get_tests_list():
             test_list.append(_normalize_test_name(scenario_name))
 
     return test_list
+
 
 def _normalize_test_name(name):
     """
@@ -45,6 +54,7 @@ def _normalize_test_name(name):
         return normalized_name[:-4]
 
     return normalized_name
+
 
 def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report_data):
     """
@@ -362,6 +372,7 @@ def filter_results_default(test_results):
 
     return status, printed_results
 
+
 def print_table(print_results):
     tbl = PrettyTable()
 
@@ -391,13 +402,15 @@ def print_table(print_results):
 def print_failed_scenarios_details(failed_scenarios, test_results):
     for failed_scenario in failed_scenarios:
         print(f"Scenario {failed_scenario} details:")
-        print(json.dumps(test_results[failed_scenario], sort_keys=True, indent=4))
+        custom_json_dump(test_results[failed_scenario], indent=4)
+        # print(json.dumps(test_results[failed_scenario], sort_keys=True, indent=4))
 
 
 def print_results_json_full(test_results):
     failed_scenarios, printed_results = filter_results_default(test_results)
 
-    print(json.dumps(printed_results, sort_keys=True, indent=4))
+    custom_json_dump(printed_results, indent=4)
+    # print(json.dumps(printed_results, sort_keys=True, indent=4))
 
     if failed_scenarios is not None:
         print_failed_scenarios_details(failed_scenarios, test_results)
@@ -427,7 +440,9 @@ def print_results_json_default(test_results):
     failed_scenarios, printed_results = filter_results_default(test_results)
 
     if failed_scenarios is not None:
-        print(json.dumps(printed_results, sort_keys=True, indent=4))
+        # print(json.dumps(printed_results, sort_keys=True, indent=4))
+        custom_json_dump(printed_results, indent=4)
+
         print(f"Scenarios {failed_scenarios} are failed!")
         print_failed_scenarios_details(failed_scenarios, test_results)
 
