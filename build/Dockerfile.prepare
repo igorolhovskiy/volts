@@ -1,4 +1,4 @@
-FROM python:3.7-buster
+FROM python:3-bookworm
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
 COPY src/prepare/requirements.txt /root/requirements.txt
