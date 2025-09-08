@@ -105,9 +105,9 @@ run_voip_patrol() {
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
         --env LOG_LEVEL_FILE=`echo ${LOG_LEVEL_FILE}` \
         --env TZ=`echo ${TIMEZONE}` \
-        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/voip_patrol.xml:/xml/${CURRENT_SCENARIO}.xml \
-        --volume ${DIR_PREFIX}/tmp/output:/output \
-        --volume ${DIR_PREFIX}/voice_ref_files:/voice_ref_files \
+        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/voip_patrol.xml:/xml/${CURRENT_SCENARIO}.xml${VOLUME_SUFFIX} \
+        --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
+        --volume ${DIR_PREFIX}/voice_ref_files:/voice_ref_files${VOLUME_SUFFIX} \
         --net=host \
         --rm \
         ${BG_RUN} \
@@ -125,8 +125,8 @@ run_prepare() {
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
         --env TAG=`echo ${PREPARE_TAG}` \
         --env TZ=`echo ${TIMEZONE}` \
-        --volume ${DIR_PREFIX}/scenarios:/opt/input/ \
-        --volume ${DIR_PREFIX}/tmp/input:/opt/output \
+        --volume ${DIR_PREFIX}/scenarios:/opt/input/${VOLUME_SUFFIX} \
+        --volume ${DIR_PREFIX}/tmp/input:/opt/output${VOLUME_SUFFIX} \
         --net=none \
         --rm \
         ${P_IMAGE}
@@ -140,8 +140,8 @@ run_report() {
         --env SIPP_RESULT_FILE=`echo ${SIPP_RESULT_FILE}` \
         --env REPORT_TYPE=`echo ${REPORT_TYPE}` \
         --env TZ=`echo ${TIMEZONE}` \
-        --volume ${DIR_PREFIX}/tmp/input:/opt/scenarios/ \
-        --volume ${DIR_PREFIX}/tmp/output:/opt/report \
+        --volume ${DIR_PREFIX}/tmp/input:/opt/scenarios/${VOLUME_SUFFIX} \
+        --volume ${DIR_PREFIX}/tmp/output:/opt/report${VOLUME_SUFFIX} \
         --net=none \
         --rm \
         ${R_IMAGE}
@@ -158,8 +158,8 @@ run_database() {
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
         --env STAGE=`echo ${1}` \
         --env TZ=`echo ${TIMEZONE}` \
-        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/database.xml:/xml/${CURRENT_SCENARIO}.xml \
-        --volume ${DIR_PREFIX}/tmp/output:/output \
+        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/database.xml:/xml/${CURRENT_SCENARIO}.xml${VOLUME_SUFFIX} \
+        --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
         --rm \
         ${D_IMAGE}
 }
@@ -180,8 +180,8 @@ run_sipp() {
         --env SCENARIO=`echo ${CURRENT_SCENARIO}` \
         --env RESULT_FILE=`echo ${SIPP_RESULT_FILE}` \
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
-        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/sipp.xml:/xml/${CURRENT_SCENARIO}.xml \
-        --volume ${DIR_PREFIX}/tmp/output:/output \
+        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/sipp.xml:/xml/${CURRENT_SCENARIO}.xml${VOLUME_SUFFIX} \
+        --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
         --rm \
         ${BG_RUN} \
         ${SIPP_IMAGE} ${OUT_REDIRECT}
@@ -200,8 +200,8 @@ run_media() {
         --env SCENARIO=`echo ${CURRENT_SCENARIO}` \
         --env RESULT_FILE=`echo ${M_RESULT_FILE}` \
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
-        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/media_check.xml:/xml/${CURRENT_SCENARIO}.xml \
-        --volume ${DIR_PREFIX}/tmp/output:/output \
+        --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/media_check.xml:/xml/${CURRENT_SCENARIO}.xml${VOLUME_SUFFIX} \
+        --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
         --net=none \
         --rm \
         ${M_IMAGE}
@@ -413,6 +413,9 @@ clean_tmp() {
 # Script controlled variables
 DIR_PREFIX=`pwd`
 SCENARIO=""
+
+# Determin if we're running script using podman
+VOLUME_SUFFIX=`docker --version 2>/dev/null | grep -qi "podman" && echo ":z" || echo ""`
 
 # Parse command line arguments
 parse_arguments "$@"
