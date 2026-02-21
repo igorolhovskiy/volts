@@ -311,8 +311,11 @@ try:
     # Walk through the files and create scenarios
 
     if single_scenario and single_scenario != "":
-        single_scenario = single_scenario.split("/")[-1]
-        process_scenario(single_scenario, combined_config, log_level, tags)
+        # Support comma-separated list of scenarios
+        scenarios_to_process = single_scenario.split(",")
+        for scenario in scenarios_to_process:
+            scenario = scenario.strip().split("/")[-1]
+            process_scenario(scenario, combined_config, log_level, tags)
     else:
         for filename in os.listdir('/opt/input'):
             process_scenario(filename, combined_config, log_level, tags)

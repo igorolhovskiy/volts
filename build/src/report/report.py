@@ -402,8 +402,16 @@ def print_table(print_results):
 def print_failed_scenarios_details(failed_scenarios, test_results):
     for failed_scenario in failed_scenarios:
         print(f"Scenario {failed_scenario} details:")
-        custom_json_dump(test_results[failed_scenario], indent=4)
-        # print(json.dumps(test_results[failed_scenario], sort_keys=True, indent=4))
+        # For voip_patrol error - print the full report
+        if test_results[failed_scenario].get('vp_status') == 'FAIL':
+            custom_json_dump(test_results[failed_scenario], indent=4)
+            continue
+        if test_results[failed_scenario].get('m_status') == 'FAIL':
+            custom_json_dump(test_results[failed_scenario]['m_error'], indent=4)
+        if test_results[failed_scenario].get('d_status') == 'FAIL':
+            custom_json_dump(test_results[failed_scenario]['d_error'], indent=4)
+        if test_results[failed_scenario].get('sipp_status') == 'FAIL':
+            custom_json_dump(test_results[failed_scenario]['sipp_error'], indent=4)
 
 
 def print_results_json_full(test_results):

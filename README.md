@@ -5,7 +5,7 @@
 
 **Voip Open Linear Tester Suite**
 
-Functional tests for a VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/)
+Functional tests for a VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`chromaprint`](https://acoustid.org/chromaprint), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/)
 
 ## 10'000 ft. view
 
@@ -255,15 +255,19 @@ You can analyze calls recording with various media tools. *Currently only SoX is
 Media check is also described in XML
 | Attribute | Description |
 | --- | --- |
-| `type` | Mandatory. Media check test to be performed. Currently only `sox`. |
+| `type` | Mandatory. Media check test to be performed. Currently `sox`/`sox_st`/`fpcalc`. |
 | `file` | Mandatory. Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names and currently with `/output/` prefix due to container interconnection (will be fixed later), see the example below for a better picture |
 | `delete_after` | Do we delete file after media check? `yes`/`no`/`keep_failed`. `keep_failed` by default. This means we keep the file if the media test did not passed |
-| `print_debug` | Print debug info on file on the console while testing. Useful for adjusting `filter` parameters. `yes`/`no`. `no` by default |
+| `print_debug` | Print debug info on file on the console while testing. Useful for adjusting `filter` parameters or getting actual fingerprint via `fpcalc`. `yes`/`no`. `no` by default |
 | `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
+| `fingerprint` | Used if `type` is `fpcalc`. Fingerprint in a `-raw` form obtained from `fpcalc` tool |
+| `length` | Used if `type` is `fpcalc`. Expected length of a sound file in seconds. Supports `<min>-<max>` format |
+| `likeness` | Used if `type` is `fpcalc`. Minimal likeness or similarity. Default value - `0.9`. See the explanation below |
 
 ##### SoX media check
 Within this check parameters from the `file` are collected by `sox` utility, more precisely - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
 In a `sox_filter` attribute you can write a string to check some given values against collected parameters. All filter expressions should be true to test pass. Best to be explained on the example</br>
+*Note: you can trim silence at the start and the end of the record with using `sox_st` as a `type`. This allows a bit better file fingerprinting*
 ```
 sox_filter="length s -ge 10; length s -le 11"
 ```
@@ -327,7 +331,7 @@ All number-like values are automatically treated as numbers and you can apply `-
     </section>
     <section type="media_check">
         <actions>
-            <action type="sox"
+            <action type="sox_st"
                 sox_filter="length s -ge 10; length s -le 11"
                 <!-- File name is the same as in the "record" attribute in the "call" action above. Now it MUST be with "/output/" path prefix -->
                 file="/output/{{ scenario_name }}.wav"
@@ -337,6 +341,63 @@ All number-like values are automatically treated as numbers and you can apply `-
 </config>
 
 ```
+##### Chromaprint media check
+
+Actually, calculate "likeness" or similarity of an audio to provided fingerprint using [`fpcalc`](https://acoustid.org/chromaprint) utility. More info about fingerprinting can be found [here](https://oxygene.sk/2011/01/how-does-chromaprint-work/).</br>
+
+**Make a call to echo number and analyze the outcome**
+```xml
+<!-- Call echo service and name sure receive an answer -->
+<config>
+    <section type="voip_patrol">
+        <actions>
+            <action type="codec" disable="all"/>
+            <action type="codec" enable="pcma" priority="250"/>
+            <action type="codec" enable="pcmu" priority="249"/>
+            <action type="call" label="Call to 11111 (echo)"
+                transport="{{ a.88881.transport }}"
+                <!-- We are expecting answer here -->
+                expected_cause_code="200"
+                caller="{{ a.88881.label }}@{{ c.domain }}"
+                <!-- Setting R-URI -->
+                callee="11111@{{ a.88881.domain }}"
+                from="sip:{{ a.88881.label }}@{{ c.domain }}"
+                to_uri="11111@{{ c.domain }}"
+                max_duration="20" hangup="10"
+                auth_username="{{ a.88881.username }}"
+                password="{{ a.88881.password }}"
+                realm="{{ c.domain }}"
+                play="{{ c.play_file }}"
+                rtp_stats="true"
+                srtp="{{ a.88881.srtp }}"
+                <!-- We heed to record file on an answer. To analyze it below now it MUST be with "/output/" path prefix -->
+                record="/output/{{ scenario_name }}.wav"
+            />
+            <action type="wait" complete="true" ms="30000"/>
+        </actions>
+    </section>
+    <section type="media_check">
+        <actions>
+            <action type="fpcalc"
+                length="9.5-10.5"
+                fingerprint="3089777192, 3089826344, 3089901096, 3089902136, 3111922232, 3120310648, 2577140987, 2577204442, 2577346698, 2560585866, 2564477114, 2558182570, 2557117614, 3643442334, 3744380046, 3745423566, 3711739086, 4246514814, 4229277806, 4233271406, 4243753262, 2096285998, 2138131766, 1987051526, 1982865414, 1445076997, 371593508, 375784228, 1986789920, 1986544240, 1978334916, 1416555204, 1416465028, 1344834180, 1349098132, 1357627060, 1353380532, 4037665462, 4037600166, 4093407654, 4068241582, 4147963054, 4148095226, 4152256522, 4152240141, 4113377292, 3508807692, 4045892460, 4117123676, 4121297432, 3584492060, 3618050572, 3601162780, 3601096740, 3596887079, 3592685607, 3592685615, 3592820798, 3602275086, 3583958542"
+                <!-- File name is the same as in the "record" attribute in the "call" action above. Now it MUST be with "/output/" path prefix -->
+                file="/output/{{ scenario_name }}.wav"
+                likeness="0.85"
+            />
+        </actions>
+    </section>
+</config>
+
+```
+Note on `likeness`:
+
+| Likeness score | Meaning |
+| --- | --- |
+| 0.95 – 1.00 | Near identical (codec change, minor distortion) |
+| 0.85 – 0.95 | Same content, more significant degradation |
+| 0.70 – 0.85 | Possibly related, uncertain |
+| < 0.70 | Likely different content |
 
 
 ### `run.sh` script

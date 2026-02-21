@@ -122,7 +122,9 @@ def preform_db_operations(db_options, db_actions, log_level = 1, logger=None):
                 error += f"[DATABASE][ERROR]:{e} "
                 if table_actions['continue_on_error']:
                     continue
-                raise Exception(f"[DATABASE][ERROR]: Problem with action {sql_stmt} on table {table}: {e}")
+                # Error occured - exiting
+                db_conn.close()
+                return error
 
     db_conn.close()
     return error

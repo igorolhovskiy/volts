@@ -4,7 +4,8 @@ LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 RUN mkdir -p /opt/input && \
     mkdir -p /opt/report && \
     apt-get update && \
-    apt-get install -y sox
+    apt-get install -y sox \
+        libchromaprint-tools
 
 COPY src/media_check /root
 COPY src/common /root/common

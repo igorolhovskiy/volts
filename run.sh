@@ -119,8 +119,14 @@ run_voip_patrol() {
 }
 
 run_prepare() {
+    # Join scenarios array with commas for prepare container
+    local SCENARIO_LIST=""
+    if [ ${#SCENARIOS[@]} -gt 0 ]; then
+        SCENARIO_LIST=$(IFS=,; echo "${SCENARIOS[*]}")
+    fi
+
     docker run --name=${P_CONTAINER_NAME} \
-        --env SCENARIO_NAME=`echo ${SCENARIO}` \
+        --env SCENARIO_NAME=`echo ${SCENARIO_LIST}` \
         --env OPENSIPS_TLS_PORT=`echo ${OPENSIPS_TLS_PORT}` \
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
         --env TAG=`echo ${PREPARE_TAG}` \
@@ -249,11 +255,12 @@ VOLTS (Voip Open Linear Tester Suite) - VoIP Functional Testing Framework
 Usage: $0 [OPTIONS] [SCENARIO]
 
 SCENARIO:
-    <scenario_name>     Run specific scenario (e.g., 001-register or scenarios/001-register.xml)
+    <scenario_name>...  Run one or more scenarios (e.g., 001-register 002-call-echo)
     tag=<tags>          Run scenarios with specific tags (e.g., tag=set1,set2)
     stop                Stop tests and delete all containers
     sngrep              Launch SIP packet capture tool
     dbclean             Clean up test data from databases
+    report-only         Skip test execution and only generate report from existing data
 
 OPTIONS:
     -h, --help          Show this help message
@@ -267,9 +274,11 @@ OPTIONS:
     --heps-port N       Set HEP source port [default: $OPENSIPS_HEPS_PORT]
     --hepd-port N       Set HEP destination port [default: $OPENSIPS_HEPD_PORT]
 
+
 EXAMPLES:
     $0                          Run all scenarios
     $0 001-register             Run specific scenario
+    $0 001-register 002-call-echo  Run multiple scenarios
     $0 scenarios/001-register.xml  Run specific scenario with full path
     $0 tag=sipp,media           Run scenarios tagged as sipp or media
     $0 -l 3 001-register        Run scenario with debug logging
@@ -278,6 +287,7 @@ EXAMPLES:
     $0 stop                     Stop all containers
     $0 sngrep                   Launch SIP packet capture
     $0 dbclean                  Clean up databases
+    $0 report-only              Re-generate report from previous run
 
 ENVIRONMENT VARIABLES:
     REPORT_TYPE         Override default report type
@@ -366,24 +376,22 @@ parse_arguments() {
                     exit 1
                 fi
                 ;;
-            stop|sngrep|dbclean)
-                # Special commands - preserve existing behavior
-                if [[ -z "$SCENARIO" ]]; then
-                    SCENARIO="$1"
-                else
-                    echo "Error: Multiple scenarios specified" >&2
+            stop|sngrep|dbclean|report-only)
+                # Special commands - must be standalone
+                if [[ ${#SCENARIOS[@]} -gt 0 ]]; then
+                    echo "Error: Cannot combine '${1}' with scenarios" >&2
                     exit 1
                 fi
+                SCENARIOS=("$1")
                 shift
                 ;;
             tag=*|-tag=*|--tag=*)
-                # Tag specification - preserve existing behavior
-                if [[ -z "$SCENARIO" ]]; then
-                    SCENARIO="$1"
-                else
-                    echo "Error: Multiple scenarios specified" >&2
+                # Tag specification - must be standalone
+                if [[ ${#SCENARIOS[@]} -gt 0 ]]; then
+                    echo "Error: Cannot combine tags with scenarios" >&2
                     exit 1
                 fi
+                SCENARIOS=("$1")
                 shift
                 ;;
             -*)
@@ -392,13 +400,8 @@ parse_arguments() {
                 exit 1
                 ;;
             *)
-                # Regular scenario name
-                if [[ -z "$SCENARIO" ]]; then
-                    SCENARIO="$1"
-                else
-                    echo "Error: Multiple scenarios specified" >&2
-                    exit 1
-                fi
+                # Regular scenario name - allow multiple
+                SCENARIOS+=("$1")
                 shift
                 ;;
         esac
@@ -412,7 +415,7 @@ clean_tmp() {
 
 # Script controlled variables
 DIR_PREFIX=`pwd`
-SCENARIO=""
+SCENARIOS=()
 
 # Determin if we're running script using podman
 VOLUME_SUFFIX=`docker --version 2>/dev/null | grep -qi "podman" && echo ":z" || echo ""`
@@ -455,58 +458,77 @@ SIPP_RESULT_FILE="sipp.jsonl"
 PROXY_CONTAINER_NAME=volts_opensips
 PROXY_IMAGE=volts_opensips:latest
 
+# report
+R_IMAGE=volts_report:latest
+R_CONTAINER_NAME=volts_report
+
 # Handle special commands first
-if [ "x${SCENARIO}" == "xstop" ]; then
-    echo -n "Stopping and deleting containers..."
-    delete_containers
-    echo " Done"
-    exit 0
-fi
-
-if [ "x${SCENARIO}" == "xsngrep" ]; then
-    if [ `docker ps | grep -c ${PROXY_CONTAINER_NAME}` == 1 ]; then
-        echo "Starting sngrep in docker..."
-        docker exec -it ${PROXY_CONTAINER_NAME} sngrep -L udp:127.0.0.1:${OPENSIPS_HEPD_PORT}
-        echo "Done"
-    else
-        echo "Cannot find ${PROXY_CONTAINER_NAME}. Make sure you have VOLTS running"
+if [ ${#SCENARIOS[@]} -eq 1 ]; then
+    if [ "x${SCENARIOS[0]}" == "xstop" ]; then
+        echo -n "Stopping and deleting containers..."
+        delete_containers
+        echo " Done"
+        exit 0
     fi
-    exit 0
-fi
 
-if [ "x${SCENARIO}" == "xdbclean" ]; then
-    echo -n "Cleaning up database(s)"
+    if [ "x${SCENARIOS[0]}" == "xsngrep" ]; then
+        if [ `docker ps | grep -c ${PROXY_CONTAINER_NAME}` == 1 ]; then
+            echo "Starting sngrep in docker..."
+            docker exec -it ${PROXY_CONTAINER_NAME} sngrep -L udp:127.0.0.1:${OPENSIPS_HEPD_PORT}
+            echo "Done"
+        else
+            echo "Cannot find ${PROXY_CONTAINER_NAME}. Make sure you have VOLTS running"
+        fi
+        exit 0
+    fi
 
-    clean_tmp
-    unset SCENARIO
-    run_prepare
+    if [ "x${SCENARIOS[0]}" == "xdbclean" ]; then
+        echo -n "Cleaning up database(s)"
 
-    for D in ${DIR_PREFIX}/tmp/input/*; do
-        CURRENT_SCENARIO=`basename ${D}`
-        run_database post
-        echo -n .
-    done
+        clean_tmp
+        SCENARIOS=()
+        run_prepare
 
-    echo " Done."
-    exit 0
+        for D in ${DIR_PREFIX}/tmp/input/*; do
+            CURRENT_SCENARIO=`basename ${D}`
+            run_database post
+            echo -n .
+        done
+
+        echo " Done."
+        exit 0
+    fi
+
+    if [ "x${SCENARIOS[0]}" == "xreport-only" ]; then
+        echo -n "Running only report"
+
+        run_report
+        delete_containers
+        exit 0
+    fi
 fi
 
 # Handle tag specification
-if [ "`echo ${SCENARIO} | cut -c1-4`" == "tag=" ]; then
-    PREPARE_TAG=`echo ${SCENARIO} | cut -c5-`
-    unset SCENARIO
-elif [ "`echo ${SCENARIO} | cut -c1-5`" == "-tag=" ]; then
-    PREPARE_TAG=`echo ${SCENARIO} | cut -c6-`
-    unset SCENARIO
-elif [ "`echo ${SCENARIO} | cut -c1-6`" == "--tag=" ]; then
-    PREPARE_TAG=`echo ${SCENARIO} | cut -c7-`
-    unset SCENARIO
+if [ ${#SCENARIOS[@]} -eq 1 ]; then
+    FIRST_SCENARIO="${SCENARIOS[0]}"
+    if [ "`echo ${FIRST_SCENARIO} | cut -c1-4`" == "tag=" ]; then
+        PREPARE_TAG=`echo ${FIRST_SCENARIO} | cut -c5-`
+        SCENARIOS=()
+    elif [ "`echo ${FIRST_SCENARIO} | cut -c1-5`" == "-tag=" ]; then
+        PREPARE_TAG=`echo ${FIRST_SCENARIO} | cut -c6-`
+        SCENARIOS=()
+    elif [ "`echo ${FIRST_SCENARIO} | cut -c1-6`" == "--tag=" ]; then
+        PREPARE_TAG=`echo ${FIRST_SCENARIO} | cut -c7-`
+        SCENARIOS=()
+    fi
 fi
 
-# Process scenario name
-if [ "x${SCENARIO}" != "x" ]; then
-    SCENARIO=`basename ${SCENARIO} | cut -f 1 -d .`
-fi
+# Process scenario names - extract basename without extension
+PROCESSED_SCENARIOS=()
+for S in "${SCENARIOS[@]}"; do
+    PROCESSED_SCENARIOS+=("$(basename ${S} | cut -f 1 -d .)")
+done
+SCENARIOS=("${PROCESSED_SCENARIOS[@]}")
 
 clean_tmp
 run_prepare
@@ -529,24 +551,23 @@ if [ -f ${DIR_PREFIX}/tmp/input/websocket.need ]; then
     control_opensips start
 fi
 
-if [ -z ${SCENARIO} ]; then
+if [ ${#SCENARIOS[@]} -eq 0 ]; then
+    # No specific scenarios - run all prepared scenarios
     for D in ${DIR_PREFIX}/tmp/input/*; do
         CURRENT_SCENARIO=`basename ${D}`
         run_scenario
     done
 else
-    CURRENT_SCENARIO=${SCENARIO}
-    run_scenario
+    # Run specified scenarios
+    for CURRENT_SCENARIO in "${SCENARIOS[@]}"; do
+        run_scenario
+    done
 fi
 
 # Stop WSS-TLS proxy
 if [ -f ${DIR_PREFIX}/tmp/input/websocket.need ]; then
     control_opensips stop
 fi
-
-# report
-R_IMAGE=volts_report:latest
-R_CONTAINER_NAME=volts_report
 
 run_report
 delete_containers

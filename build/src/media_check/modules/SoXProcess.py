@@ -2,26 +2,29 @@ import os.path
 import subprocess
 import time
 
+
 class SoXProcess:
     '''
     Class for processing all sox-related media checks
     '''
-    filename = None
-    file_stats = {}
-    condition_filter = set()
 
-    def __init__(self, filename):
+    def __init__(self, filename: str, strip_silence=False):
 
         if not os.path.exists(filename):
             raise Exception(f"File {filename} not found")
 
         self.filename = filename
+        self.strip_silence = strip_silence
+        self.orig_filename = ""
+        self.file_stats = {}
+        self.condition_filter = set()
 
-    def _run_sox(self, cmd, use_std_out = True):
+    def _run_sox(self, cmd, use_std_out=True):
         '''
         Runs `sox` with given `cmd` and depending on `use_std_out` returning or STDOUT or STDERR
         '''
-        sox_cmd = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd_timeout = ['/usr/bin/timeout', '20'] + cmd
+        sox_cmd = subprocess.Popen(cmd_timeout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         while sox_cmd.poll() is None:
             time.sleep(0.02)
@@ -116,34 +119,6 @@ class SoXProcess:
 
         return result
 
-    def _set_file_stats(self):
-        '''
-        Run sox --i <filename>, sox <filename> -n stat, sox <filename> -n stats against a <filename>
-        Get all outputed data and make a combined dict of gathered parameters
-        '''
-        if len(self.file_stats) > 0:
-            return
-
-        if self.filename == None:
-            raise Exception("Filename to process is not set")
-
-        cmd_stat    = ['/usr/bin/timeout', '10', '/usr/bin/sox', self.filename, '-n', 'stat']
-        cmd_stats   = ['/usr/bin/timeout', '10', '/usr/bin/sox', self.filename, '-n', 'stats']
-        cmd_info    = ['/usr/bin/timeout', '10', '/usr/bin/sox', '--i', self.filename]
-
-        # sox stat and stats command giving the output to stderr. sox --i as usual to stdout
-        sox_stat = self._run_sox(cmd_stat, use_std_out=False)
-        sox_stats = self._run_sox(cmd_stats, use_std_out=False)
-        sox_info = self._run_sox(cmd_info, use_std_out=True)
-
-        sox_stat_dict = self._out_to_parameter_dict(sox_stat)
-        sox_stats_dict = self._out_to_parameter_dict(sox_stats)
-        sox_info_dict = self._out_to_parameter_dict_info(sox_info)
-
-        result = {**sox_info_dict, **sox_stat_dict, **sox_stats_dict}
-
-        self.file_stats = result
-
     def _process_single_valid_filter(self, single_condition, operator, operator_position):
         param = single_condition[:operator_position]
         param = " ".join(param.split()).lower()
@@ -176,12 +151,93 @@ class SoXProcess:
 
         self.condition_filter = result
 
+    def _trim_silence(self):
+        # Apply filter to a file
+        # sox in.wav out.wav silence 1 0.1 0.1% reverse silence 1 0.1 0.1% reverse
+
+        # This means we already trimmed silence
+        if self.orig_filename != "":
+            return
+
+        # Make a file with _st suffix
+        name, ext = os.path.splitext(os.path.basename(self.filename))
+
+        strip_file_location = os.path.join('/tmp', f"{name}_st{ext}")
+
+        cmd_strip_silence = [
+            '/usr/bin/sox',
+            self.filename,
+            strip_file_location,
+            'silence',
+            '1',
+            '0.1',
+            '0.1%',
+            'reverse',
+            'silence',
+            '1',
+            '0.1',
+            '0.1%',
+            'reverse'
+        ]
+
+        self._run_sox(cmd_strip_silence, use_std_out=False)
+
+        if not os.path.exists(strip_file_location):
+            raise Exception(f"Silence trim failed - no file created")
+
+        self.orig_filename = self.filename
+        self.filename = strip_file_location
+
+    def _set_file_stats(self):
+        '''
+        Run sox --i <filename>, sox <filename> -n stat, sox <filename> -n stats against a <filename>
+        Get all outputed data and make a combined dict of gathered parameters
+        '''
+        if len(self.file_stats) > 0:
+            return
+
+        if self.filename == "":
+            raise Exception("Filename to process is not set")
+
+        if self.strip_silence:
+            self._trim_silence()
+
+        cmd_stat = [
+            '/usr/bin/sox',
+            self.filename,
+            '-n',
+            'stat'
+        ]
+        cmd_stats = [
+            '/usr/bin/sox',
+            self.filename,
+            '-n',
+            'stats'
+        ]
+        cmd_info = [
+            '/usr/bin/sox',
+            '--i',
+            self.filename
+        ]
+
+        # sox stat and stats command giving the output to stderr. sox --i as usual to stdout
+        sox_stat = self._run_sox(cmd_stat, use_std_out=False)
+        sox_stats = self._run_sox(cmd_stats, use_std_out=False)
+        sox_info = self._run_sox(cmd_info, use_std_out=True)
+
+        sox_stat_dict = self._out_to_parameter_dict(sox_stat)
+        sox_stats_dict = self._out_to_parameter_dict(sox_stats)
+        sox_info_dict = self._out_to_parameter_dict_info(sox_info)
+
+        result = {**sox_info_dict, **sox_stat_dict, **sox_stats_dict}
+
+        self.file_stats = result
+
     def get_file_stats(self):
         if len(self.file_stats) == 0:
             self._set_file_stats()
 
         return self.file_stats
-
 
     def apply_filter(self, filter):
         # Accepting as a value string with filter. All expressions should be TRUE to pass a test
