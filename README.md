@@ -13,7 +13,7 @@ The system is designed to run simple call scenarios, that you usually do with yo
 Scenarios are run one by one from `scenarios` folder in alphabetical order, which could be considered a limitation, but also allows you to reuse the same accounts in a different set of tests. This stands for `Linear` in the name ;)
 So, call some destination(s) with one(or more) device(s) and control call arrival on another phone(s).</br>
 But wait, there is more. VOLTS also can integrate with your MySQL and/or PostgreSQL databases to write some data there before the test and remove it after.</br>
-Also, it can record (and play, obviously) media during the call and do media checks of these files (currently basic via [SoX](https://sox.sourceforge.net/))</br>
+Also, it can record (and play, obviously) media during the call and do media checks of these files</br>
 It will make and receive calls and configure the database. *It's not doing transfers at the moment. Sorry. I don't need em*</br>
 And to add, you can definitely use it in [TDD](https://en.wikipedia.org/wiki/Test-driven_development) approach when adding functionalities to your existing PBX system. Test-Fail-Fix.</br></br>
 
@@ -251,7 +251,7 @@ So, inside the `database` action you specify the tables you're working with. Eac
 </config>
 ```
 #### Media check
-You can analyze calls recording with various media tools. *Currently only SoX is supported.*</br>
+You can analyze calls recording with various media tools.</br>
 Media check is also described in XML
 | Attribute | Description |
 | --- | --- |
