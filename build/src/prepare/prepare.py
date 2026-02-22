@@ -93,7 +93,7 @@ def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
             separate_scenarios['database'] = get_database_config(child, combined_config)
 
         if child.attrib.get('type') == 'media_check':
-            separate_scenarios['media_check'] = get_generic_config(child)
+            separate_scenarios['media_check'] = get_media_config(child)
 
         if child.attrib.get('type') == 'sipp':
             separate_scenarios['sipp'] = get_generic_config(child)
@@ -142,6 +142,28 @@ def get_generic_config(config):
     return ET.ElementTree(root)
 
 
+def get_media_config(config):
+    '''
+    Process media config to normalise filenames
+    '''
+    if config[0].tag != 'actions':
+        raise Exception('Tag is not <actions>')
+
+    actions = config[0]
+
+    for elem in actions:
+        if elem.attrib.get('file'):
+            file_path = elem.attrib.get('file')
+            file_name = os.path.basename(file_path)
+            file_path = os.path.join('/output', file_name)
+            elem.set('file', file_path)
+
+    root = ET.Element('config', attrib=None, nsmap=None)
+    root.append(actions)
+
+    return ET.ElementTree(root)
+
+
 def get_vp_config(config, name='', log_level=0):
     '''
     Take an voip_patrol/media_check config and make new root - <config> for it
@@ -179,6 +201,13 @@ def get_vp_config(config, name='', log_level=0):
                 if (elem.attrib.get('caller', '') == ''
                         or elem.attrib.get('callee', '') == ''):
                     logger.warning(f"{name}: caller/callee are empty in <call> action")
+
+            # append mandatory `/output/` to record if it's not there
+            if elem.attrib.get('record'):
+                record_path = elem.attrib.get('record')
+                record_file = os.path.basename(record_path)
+                record_path = os.path.join('/output', record_file)
+                elem.set('record', record_path)
 
     root = ET.Element('config', attrib=None, nsmap=None)
     root.append(actions)
