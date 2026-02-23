@@ -344,6 +344,7 @@ All number-like values are automatically treated as numbers and you can apply `-
 ##### Chromaprint media check
 
 Actually, calculate "likeness" or similarity of an audio to provided fingerprint using [`fpcalc`](https://acoustid.org/chromaprint) utility. More info about fingerprinting can be found [here](https://oxygene.sk/2011/01/how-does-chromaprint-work/).</br>
+*Note: make sure that files have at least 3-4 seconds of audio for this tool. 10-15 seconds is recommended*
 
 **Make a call to echo number and analyze the outcome**
 ```xml
