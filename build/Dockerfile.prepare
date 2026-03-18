@@ -1,19 +1,22 @@
-FROM python:3-bookworm
+FROM python:3.13-slim-bookworm
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
 COPY src/prepare/requirements.txt /root/requirements.txt
 
-RUN mkdir -p /opt/input && \
-    mkdir -p /opt/output && \
-    pip install -r /root/requirements.txt
+RUN mkdir -p /opt/input /opt/output && \
+        apt-get update && \
+        apt-get install -y --no-install-recommends git && \
+        pip install --no-cache-dir -r /root/requirements.txt && \
+        apt-get remove -y --purge git && \
+        apt-get autoremove -y && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
 
 COPY src/prepare /root
 COPY src/common /root/common
-COPY entrypoint.prepare.sh /docker-entrypoint.sh
+COPY --chmod=755 entrypoint.prepare.sh /docker-entrypoint.sh
 
-RUN chmod +x /docker-entrypoint.sh
-
-VOLUME ["/opt" ]
+VOLUME ["/opt"]
 
 WORKDIR /root
 

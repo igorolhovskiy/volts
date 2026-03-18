@@ -1,18 +1,17 @@
-FROM python:3-bookworm
+FROM python:3.13-slim-bookworm
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
-RUN mkdir -p /opt/input && \
-    mkdir -p /opt/report && \
+RUN mkdir -p /opt/input /opt/report && \
     apt-get update && \
-    apt-get install -y sox \
-        libchromaprint-tools
+    apt-get install -y --no-install-recommends \
+        sox \
+        libchromaprint-tools && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY src/media_check /root
 COPY src/common /root/common
-
-COPY entrypoint.media.sh /docker-entrypoint.sh
-
-RUN chmod +x /docker-entrypoint.sh
+COPY --chmod=755 entrypoint.media.sh /docker-entrypoint.sh
 
 WORKDIR /root
 

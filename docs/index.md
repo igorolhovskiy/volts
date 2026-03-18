@@ -9,7 +9,7 @@ title: Home
 ## VoIP Open Linear Tester Suite
 {: .title.title--little}
 
-Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/).
+Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`chromaprint`](https://acoustid.org/chromaprint), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/).
 
 ## Overview
 {: #overview .title}
@@ -19,7 +19,7 @@ The system is designed to run simple call scenarios, that you usually do with yo
 So, call some destination(s) with one (or more) device(s) and control call arrival on another phone(s). But wait, there is more:
 
 - **Database Integration**: VOLTS can integrate with your MySQL and/or PostgreSQL databases to write some data there before the test and remove it after
-- **Media Recording & Analysis**: Record and play media during calls and perform media checks of these files (currently basic via [SoX](https://sox.sourceforge.net/))
+- **Media Recording & Analysis**: Record and play media during calls and perform media checks of these files via [SoX](https://sox.sourceforge.net/) and [Chromaprint](https://acoustid.org/chromaprint)
 - **TDD Support**: Use it in [Test-Driven Development](https://en.wikipedia.org/wiki/Test-driven_development) approach when adding functionalities to your existing PBX system. Test-Fail-Fix.
 
 ### System Architecture
@@ -118,6 +118,21 @@ To get a set of tests running using `tag` keyword:
 
 After running the suite you can always find `voip_patrol` results in `tmp/output` folder.
 
+#### Environment Variables
+
+You can also configure behavior via environment variables (command-line options take precedence):
+
+| Variable | Description |
+|----------|-------------|
+| `REPORT_TYPE` | Report type: `table`, `json`, `table_full`, `json_full`. Overridden by `-r/--report` |
+| `LOG_LEVEL` | Log level (0-3). Overridden by `-l/--log-level` |
+| `MAX_SINGLE_TEST_TIME` | Maximum time for a single test in seconds. Overridden by `-t/--timeout` |
+| `OPENSIPS_TLS_PORT` | OpenSIPS TLS port (default: 6051). Overridden by `--tls-port` |
+| `OPENSIPS_WSS_PORT` | OpenSIPS WSS port (default: 9443). Overridden by `--wss-port` |
+| `OPENSIPS_HEPS_PORT` | HEP source port (default: 8887). Overridden by `--heps-port` |
+| `OPENSIPS_HEPD_PORT` | HEP destination port (default: 8888). Overridden by `--hepd-port` |
+{: .table}
+
 ## Configuration
 {: #configuration .title}
 
@@ -136,6 +151,17 @@ Values for templates are taken from `scenarios/config.yaml`. Variables from `glo
 There is a special name `scenario_name` that transforms to a scenario file name stripped `.xml` extension.
 
 All settings from `global` section are inherited to the `accounts` section automatically unless defined there explicitly.
+
+There is also an `env` variable that exposes system environment variables to templates. Use it when you need to pass runtime values without modifying `config.yaml`:
+
+{% raw %}
+```xml
+{{ env.MY_VAR }}                        <!-- empty string if not set -->
+{{ env.MY_VAR | default('fallback') }}  <!-- explicit fallback value -->
+{{ env.DOMAIN | default(c.domain) }}    <!-- fall back to config.yaml value -->
+```
+{% endraw %}
+{: .code}
 
 **Example config.yaml:**
 
@@ -201,8 +227,14 @@ You can debug proxy traffic using [`sngrep`](https://github.com/irontec/sngrep):
 ./run.sh sngrep
 # or
 docker exec -it volts_opensips sngrep -L udp:127.0.0.1:8888
+# or using a local sngrep installation
+sudo sngrep -L udp:127.0.0.1:8888 port 8888
 ```
 {: .code}
+
+Where `8888` is the `OPENSIPS_HEPD_PORT` (configurable with `--hepd-port` option).
+
+Note: you need to use the `turn` section of your `voip_patrol` configuration to ensure media passes through. See the WSS example below.
 
 ### SIPP Configuration
 
@@ -307,17 +339,20 @@ Database configuration is done in XML, section `database`. There are 2 stages:
 ### Media Check
 {: #media-check .title.title--mini}
 
-Analyze call recordings with media tools (currently only SoX is supported).
+Analyze call recordings with various media tools.
 
 #### Media Check Attributes
 
 | Attribute | Description |
 |-----------|-------------|
-| `type` | Media check type: currently only `sox` |
+| `type` | Media check type: `sox`, `sox_st`, or `fpcalc` |
 | `file` | Path to file (must use `/output/` prefix) |
 | `delete_after` | Delete file after check: `yes`/`no`/`keep_failed` (default) |
 | `print_debug` | Print debug info: `yes`/`no` (default) |
-| `sox_filter` | Semicolon-separated expressions for SoX validation |
+| `sox_filter` | Used if `type` is `sox`/`sox_st`. Semicolon-separated expressions for SoX validation |
+| `fingerprint` | Used if `type` is `fpcalc`. Raw fingerprint from `fpcalc` tool |
+| `length` | Used if `type` is `fpcalc`. Expected length in seconds. Supports `<min>-<max>` format |
+| `likeness` | Used if `type` is `fpcalc`. Minimum similarity score (default: `0.9`) |
 {: .table}
 
 #### SoX Media Check
@@ -334,6 +369,24 @@ This checks that:
 - Crest factor is less than 10
 
 Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) instead of `<`, `>` symbols.
+
+You can also use `sox_st` as a type to trim silence at the start and end of the recording before analysis — this allows slightly better file fingerprinting.
+
+#### Chromaprint Media Check
+
+The `fpcalc` type calculates the "likeness" (similarity) of a recorded audio file against a provided reference fingerprint using the [`fpcalc`](https://acoustid.org/chromaprint) utility. More info about fingerprinting can be found [here](https://oxygene.sk/2011/01/how-does-chromaprint-work/).
+
+*Note: make sure files have at least 3-4 seconds of audio. 10-15 seconds is recommended.*
+
+**Likeness score reference:**
+
+| Likeness score | Meaning |
+|----------------|---------|
+| 0.95 – 1.00 | Near identical (codec change, minor distortion) |
+| 0.85 – 0.95 | Same content, more significant degradation |
+| 0.70 – 0.85 | Possibly related, uncertain |
+| < 0.70 | Likely different content |
+{: .table}
 
 **Example with Media Check:**
 
@@ -543,6 +596,51 @@ Uses bash-style comparison operators (`-eq`, `-lt`, `-gt`, `-le`, `-ge`, `-ne`) 
                 <!-- File name is the same as in the "record" attribute in the "call" action above. Now it MUST be with "/output/" path prefix -->
                 file="/output/{{ scenario_name }}.wav"
                 delete_after="yes"
+            />
+        </actions>
+    </section>
+</config>
+```
+{% endraw %}
+{: .code}
+
+#### Chromaprint Media Check Example
+
+{% raw %}
+```xml
+<!-- Call echo service and verify audio fingerprint similarity -->
+<config>
+    <section type="voip_patrol">
+        <actions>
+            <action type="codec" disable="all"/>
+            <action type="codec" enable="pcma" priority="250"/>
+            <action type="codec" enable="pcmu" priority="249"/>
+            <action type="call" label="Call to 11111 (echo)"
+                transport="{{ a.88881.transport }}"
+                expected_cause_code="200"
+                caller="{{ a.88881.label }}@{{ c.domain }}"
+                callee="11111@{{ a.88881.domain }}"
+                from="sip:{{ a.88881.label }}@{{ c.domain }}"
+                to_uri="11111@{{ c.domain }}"
+                max_duration="20" hangup="10"
+                auth_username="{{ a.88881.username }}"
+                password="{{ a.88881.password }}"
+                realm="{{ c.domain }}"
+                play="{{ c.play_file }}"
+                rtp_stats="true"
+                srtp="{{ a.88881.srtp }}"
+                record="/output/{{ scenario_name }}.wav"
+            />
+            <action type="wait" complete="true" ms="30000"/>
+        </actions>
+    </section>
+    <section type="media_check">
+        <actions>
+            <action type="fpcalc"
+                length="9.5-10.5"
+                fingerprint="3089777192, 3089826344, 3089901096, 3089902136, 3111922232, 3120310648, 2577140987, 2577204442"
+                file="/output/{{ scenario_name }}.wav"
+                likeness="0.85"
             />
         </actions>
     </section>

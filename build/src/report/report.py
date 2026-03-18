@@ -434,8 +434,8 @@ def print_results_table_default(test_results):
     failed_scenarios, printed_results = filter_results_default(test_results)
 
     if failed_scenarios is not None:
-        print_table(printed_results)
         print_failed_scenarios_details(failed_scenarios, test_results)
+        print_table(printed_results)
         print(f"Scenarios {failed_scenarios} are failed!")
 
         return
@@ -462,10 +462,12 @@ def print_results_json_default(test_results):
 def print_results_table_full(test_results):
     failed_scenarios, _ = filter_results_default(test_results)
 
+    if failed_scenarios is not None:
+        print_failed_scenarios_details(failed_scenarios, test_results)
+
     print_table(test_results)
 
     if failed_scenarios is not None:
-        print_failed_scenarios_details(failed_scenarios, test_results)
         print(f"Scenarios {failed_scenarios} are failed!")
 
         return
@@ -531,5 +533,10 @@ try:
     else:
         print_results_json_default(test_results)
 
+    failed_scenarios, _ = filter_results_default(test_results)
+    if failed_scenarios:
+        sys.exit(1)
+
 except Exception as e:
     print(f"Error processing report: {e}")
+    sys.exit(2)

@@ -1,17 +1,14 @@
-FROM python:3-bookworm
+FROM python:3.13-slim-bookworm
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
 COPY src/report/requirements.txt /root/requirements.txt
 
-RUN mkdir -p /opt/scenarios && \
-    mkdir -p /opt/report && \
-    pip install -r /root/requirements.txt
+RUN mkdir -p /opt/scenarios /opt/report && \
+    pip install --no-cache-dir -r /root/requirements.txt
 
 COPY src/report/report.py /root/report.py
 COPY src/common /root/common
-COPY entrypoint.report.sh /docker-entrypoint.sh
-
-RUN chmod +x /docker-entrypoint.sh
+COPY --chmod=755 entrypoint.report.sh /docker-entrypoint.sh
 
 WORKDIR /root
 

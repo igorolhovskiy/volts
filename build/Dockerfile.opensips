@@ -1,15 +1,15 @@
-FROM python:3-bookworm
+FROM python:3.13-slim-bookworm
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install --assume-yes curl && \
+    apt-get install --assume-yes --no-install-recommends curl && \
     curl https://apt.opensips.org/opensips-org.gpg -o /usr/share/keyrings/opensips-org.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org bookworm 3.4-releases" > /etc/apt/sources.list.d/opensips.list && \
     echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org bookworm cli-nightly" > /etc/apt/sources.list.d/opensips-cli.list && \
     apt-get update -qq && \
-    apt-get install --assume-yes \
+    apt-get install --assume-yes --no-install-recommends \
         m4 \
         opensips \
         opensips-http-modules \
@@ -25,8 +25,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-ADD src/opensips/opensips.cfg /etc/opensips/opensips.cfg.m4
-ADD entrypoint.opensips.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY src/opensips/opensips.cfg /etc/opensips/opensips.cfg.m4
+COPY --chmod=755 entrypoint.opensips.sh /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

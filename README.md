@@ -69,12 +69,20 @@ We suppose to configure 2 parts here. First, and most complexes are
 `VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database`, and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
 Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to [`jinja2-time`](https://github.com/hackebrot/jinja2-time) documentation.</br>
 As you will see below, the core for all type of tests are actually `voip_patrol` or `sipp`, others are just helpers around.
+
 #### Global config
 
 Values for templates are taken from `scenarios/config.yaml`</br>
 One thing to mention here, is that vars from `global` section transform to `c.` (for `config` or `g.` for `global`, `c.` and `.g` are equal) and from `accounts` to `a.` in templates for shorter notation.</br>
 There is a special name `scenario_name` that is transforming to a scenario file name stripped `.xml` extension.</br>
-Also, all settings from `global` section are inherited to the `accounts` section automatically unless they are defined there explicitly.</br>
+All settings from `global` section are inherited to the `accounts` section automatically unless they are defined there explicitly.</br>
+There is also `env` variable that exposes system environment variables to templates. Use it when you need to pass runtime values without modifying `config.yaml`:
+
+```xml
+{{ env.MY_VAR }}                        <!-- empty string if not set -->
+{{ env.MY_VAR | default('fallback') }}  <!-- explicit fallback value -->
+{{ env.DOMAIN | default(c.domain) }}    <!-- fall back to config.yaml value -->
+```
 
 `config.yaml`
 ```yaml
@@ -104,6 +112,7 @@ accounts:
     auth_username:  '90001'
     password:       'SuperSecretPass3'
 ```
+
 #### VoIP - patrol
 To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) config, but here follows some basic example to show the idea of the templating.</br></br>
 **Make a register**
@@ -250,6 +259,7 @@ So, inside the `database` action you specify the tables you're working with. Eac
     </section>
 </config>
 ```
+
 #### Media check
 You can analyze calls recording with various media tools.</br>
 Media check is also described in XML
@@ -1159,8 +1169,9 @@ and some load as well. Why not?
     </section>
 </config>
 ```
+
 ### Running only selected tests.
-You can specify a `tag` (one or several comma-separated) on each test scenario, just adding a `tag` attribute to a `config` element.
+You can specify tests you want to run via CLI (space-separated) or can specify a `tag` (one or several comma-separated) on each test scenario, just adding a `tag` attribute to a `config` element.
 ```xml
 <config tag='set1'>
     ...

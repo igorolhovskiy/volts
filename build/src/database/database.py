@@ -35,6 +35,13 @@ import xml.etree.ElementTree as ET
 import sys
 import os
 import json
+import re
+
+from pathlib import Path
+
+# Add common utilities to path
+sys.path.insert(0, '/root/common')
+from logger import setup_logger, get_log_level, ErrorReporter
 
 
 def get_db_connection(db_options):

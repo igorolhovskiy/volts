@@ -49,6 +49,7 @@ def scenario_from_template(scenario_name, config):
                                       a=config["a"],
                                       g=config["c"],
                                       d=config["d"],
+                                      env=os.environ,
                                       scenario_name=current_scenario_name)
 
     return result_scenario

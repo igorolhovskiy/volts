@@ -1,34 +1,52 @@
-FROM python:3-bookworm
-LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
+FROM python:3.13-slim-bookworm AS builder
 
 ENV SIPP_VERSION=3.7.3
 
-COPY src/sipp/requirements.txt /root/requirements.txt
-
 RUN apt-get update && \
-    apt-get install -y cmake \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        libncurses-dev \
         lksctp-tools \
         libsctp-dev \
         libpcap-dev \
         libgsl-dev \
-        ssl-cert &&\
-    cd usr/src/ && \
-    wget https://github.com/SIPp/sipp/releases/download/v${SIPP_VERSION}/sipp-${SIPP_VERSION}.tar.gz && \
-    tar xvf sipp-${SIPP_VERSION}.tar.gz && \
+        libssl-dev \
+        ssl-cert \
+        wget && \
+    cd /usr/src/ && \
+    wget --no-verbose https://github.com/SIPp/sipp/releases/download/v${SIPP_VERSION}/sipp-${SIPP_VERSION}.tar.gz && \
+    tar xf sipp-${SIPP_VERSION}.tar.gz && \
     cd sipp-${SIPP_VERSION} && \
     cmake . -DUSE_GSL=1 -DUSE_PCAP=1 -DUSE_SSL=1 -DUSE_SCTP=1 && \
-    make -j4 && \
+    make -j$(nproc) && \
     make install && \
+    rm -rf /var/lib/apt/lists/*
+
+
+FROM python:3.13-slim-bookworm
+LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
+
+COPY src/sipp/requirements.txt /root/requirements.txt
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        lksctp-tools \
+        libpcap0.8 \
+        libgsl27 \
+        libssl3 \
+        ssl-cert && \
     make-ssl-cert generate-default-snakeoil --force-overwrite && \
-    pip install -r /root/requirements.txt && \
-    mkdir -p /xml && \
-    mkdir -p /output && \
+    pip install --no-cache-dir -r /root/requirements.txt && \
+    mkdir -p /xml /output && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-VOLUME [ "/xml", "/output" ]
+COPY --from=builder /usr/local/bin/sipp /usr/local/bin/sipp
+
+VOLUME ["/xml", "/output"]
 
 COPY src/sipp/sipp.py /root/sipp.py
 COPY src/common /root/common
-COPY entrypoint.sipp.sh /docker-entrypoint.sh
+COPY --chmod=755 entrypoint.sipp.sh /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
