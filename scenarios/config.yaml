@@ -5,6 +5,7 @@ global:
   srtp:             'sdes,force'
   dtls:             'dtls,force'
   play_file:        '/voice_ref_files/8000_2m30.wav'
+  play_file_2:      '/voice_ref_files/test01_20s.wav'
   asterisk_context: 'company_users'
   stun_address:     'public.stun.server:3478'
 databases:

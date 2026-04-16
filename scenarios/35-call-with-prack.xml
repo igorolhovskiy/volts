@@ -1,0 +1,67 @@
+<!--
+Register with 90002 and receive a call from 90001 with PRACK sequence on callee side
+Point, we're putting "require_100rel" in "register" section, as this is moment, where account is created.
+In "accept" we are having "match_account" so all of the account options like srtp, transport, require_100rel
+will be used from account that was created earlier.
+-->
+<config tag="cp">
+    <section type="voip_patrol">
+        <actions>
+            {% include "helpers/codecs-default.j2" %}
+            <action type="register" label="Register {{ a.90002.label }}"
+                transport="{{ a.90002.transport }}"
+                account="{{ a.90002.username }}"
+                username="{{ a.90002.label }}"
+                auth_username="{{ a.90002.username }}"
+                password="{{ a.90002.password }}"
+                registrar="{{ c.domain }}"
+                realm="{{ c.domain }}"
+                expected_cause_code="200"
+                require_100rel="force"
+                srtp="{{ a.90002.srtp }}">
+            </action>
+            <action type="wait" complete="true" ms="2000"/>
+            <action type="accept" label="Receive call on {{ a.90002.username }} from {{ a.90001.label }}"
+                call_count="1"
+                match_account="{{ a.90002.username }}"
+                hangup="5"
+                ring_duration="2"
+                code="200" reason="OK"
+                transport="{{ a.90002.transport }}"
+                srtp="{{ a.90002.srtp }}"
+                play="{{ c.play_file }}"
+                record="{{ scenario_name }}_1.wav">
+                <check-header name="From" regex="^.*sip:\+412276{{ a.90001.label }}@.*$"/>
+            </action>
+            <action type="call" label="Call {{ a.90001.label }} -> {{ a.90002.label }}"
+                transport="tls"
+                expected_cause_code="200"
+                caller="{{ a.90001.label }}@{{ c.domain }}"
+                callee="{{ a.90002.label }}@{{ c.domain }}"
+                from="sip:{{ a.90001.label }}@{{ c.domain }}"
+                to_uri="{{ a.90002.label }}@{{ c.domain }}"
+                max_duration="10" hangup="7"
+                auth_username="{{ a.90001.username }}"
+                password="{{ a.90001.password }}"
+                realm="{{ c.domain }}"
+                max_ring_duration="15"
+                srtp="{{ a.90001.srtp }}"
+                play="{{ c.play_file }}"
+                record="{{ scenario_name }}_2.wav"
+            />
+            <action type="wait" complete="true" ms="30000"/>
+        </actions>
+    </section>
+    <section type="media_check">
+        <actions>
+            <action type="sox"
+                sox_filter="length s -ge 4.6; length s -le 5.4; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
+                file="{{ scenario_name }}_1.wav"
+            />
+            <action type="sox"
+                sox_filter="length s -ge 4.6; length s -le 5.4; maximum amplitude -ge 0.9; minimum amplitude -le -0.5"
+                file="{{ scenario_name }}_2.wav"
+            />
+        </actions>
+    </section>
+</config>

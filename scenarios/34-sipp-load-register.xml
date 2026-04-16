@@ -5,7 +5,7 @@
         <!-- add subscribers to SIP Proxy -->
             <action database="sippproxydb" stage="pre">
                 {% for endpoint in ['90011'] %}
-                {% include "helpers/kamdb-endpoint.j2" %}
+                {% include "helpers/sipproxydb-endpoint.j2" %}
                 {% endfor %}
             </action>
         <!-- add endpoints and aors to Asterisk -->
