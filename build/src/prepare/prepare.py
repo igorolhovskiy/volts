@@ -72,7 +72,7 @@ def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
         logger.error(f"Root element is not <config> in {scenario}")
         return None
 
-    scenario_tags = root.attrib.get('tag').split(',')
+    scenario_tags = root.attrib.get('tag', '').split(',')
     scenario_tags = set([x for x in scenario_tags if x])
 
     if len(tags) > 0 and len(scenario_tags.intersection(tags)) == 0:
@@ -280,7 +280,7 @@ logger = setup_logger(__name__, log_level)
 error_reporter = ErrorReporter(logger)
 
 # Get tags if any
-tags = os.environ.get("TAG", "").split(',')
+tags = os.environ.get('TAG', '').split(',')
 # Remove empty strings
 tags = tuple([x for x in tags if x])
 
@@ -330,7 +330,7 @@ try:
             if type(key) is str and key.isnumeric():
                 account_config_mixed[int(key)] = account_config_mixed[key]
 
-    single_scenario = os.environ.get("SCENARIO_NAME")
+    single_scenario = os.environ.get('SCENARIO_NAME')
 
     combined_config = {
         "a": account_config_mixed,
