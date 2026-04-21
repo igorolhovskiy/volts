@@ -1,14 +1,16 @@
 #!/bin/sh
 
 COMPONENTS="prepare vp report database media sipp opensips"
+REGISTRY="ihorolkhovskyi"
 
 usage() {
-    echo "Usage: $0 [-c|--clean] [-r|--refresh [component,...]]"
+    echo "Usage: $0 [-c|--clean] [-r|--refresh [component,...]] [-p|--push]"
     echo ""
     echo "Options:"
     echo "  -c, --clean                   Stop/remove all VOLTS containers and images"
     echo "  -r, --refresh                 Force rebuild all components (--no-cache)"
     echo "  -r, --refresh comp1[,comp2,...]  Force rebuild specific component(s) (--no-cache)"
+    echo "  -p, --push                    Tag and push images to $REGISTRY"
     echo ""
     echo "Components: $COMPONENTS"
     exit 1
@@ -16,6 +18,7 @@ usage() {
 
 REBUILD_COMPONENTS=""
 CLEAN=0
+PUSH=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -31,6 +34,10 @@ while [ $# -gt 0 ]; do
             else
                 REBUILD_COMPONENTS="$COMPONENTS"
             fi
+            ;;
+        -p|--push)
+            PUSH=1
+            shift
             ;;
         -h|--help)
             usage
@@ -72,3 +79,11 @@ for comp in $COMPONENTS; do
 
     docker build $cache_opt --file "build/Dockerfile.$comp" --platform linux/amd64 --tag "$tag" build/
 done
+
+if [ "$PUSH" = "1" ]; then
+    for comp in $COMPONENTS; do
+        remote_tag="$REGISTRY/$comp"
+        docker tag "volts_$comp" "$remote_tag"
+        docker push "$remote_tag"
+    done
+fi

@@ -33,14 +33,47 @@ Steps 3-6 are running sequentially against scenarios files prepared in step 1. O
 
 ## Building
 
-Suite is designed to run locally from your Linux PC or Mac (maybe). And of course, `docker` should be installed. It's up to you.</br>
+You can build images locally or pull existing from a `dockerhub`.</br>
+Suite is designed to run locally from your Linux PC or Mac. And of course, `docker` should be installed. It's up to you.</br>
 *Notes on using `podman`: I was able to run VOTLS using `podman-docker` package. One obstacle by default - the volumes permissions inside a container. To address this issue please refer to [this article](https://www.redhat.com/en/blog/container-permission-denied-errors).*</br>
-To build, just run `./build.sh`. Script will build 6 `docker` images and tag em accordingly.</br>
+To build, just run `./build.sh`. Script will build 7 `docker` images and tag em accordingly.</br>
 In a case if `voip_patrol` or `sipp` is updated, you need to rebuild these containers again, you can do it with `./build.sh -r <component>`, refer to `./build.sh --help`.
 
-## Running
+### Build Options
 
-After building, just run
+```sh
+./build.sh [OPTIONS]
+```
+
+| Option | Description |
+| --- | --- |
+| `-c, --clean` | Stop and remove all VOLTS containers and images |
+| `-r, --refresh` | Force rebuild all components (`--no-cache`) |
+| `-r, --refresh comp1[,comp2,...]` | Force rebuild specific component(s) (`--no-cache`) |
+| `-p, --push` | Tag and push images to the registry. Change the `REGISTRY` variable in a script accordingly |
+
+#### Examples
+```sh
+# Build all components
+./build.sh
+
+# Force rebuild all components from scratch
+./build.sh --refresh
+
+# Rebuild only the voip_patrol component
+./build.sh --refresh vp
+
+# Rebuild specific components
+./build.sh --refresh vp,report
+
+# Clean up all containers and images
+./build.sh --clean
+
+# Build and push to registry
+./build.sh --push
+```
+
+## Running
 ```sh
 ./run.sh
 ```

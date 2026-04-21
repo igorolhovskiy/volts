@@ -5,9 +5,11 @@ REPORT_TYPE='table_full'
 # Log level on console
 LOG_LEVEL=0
 # Timezone
-TIMEZONE=`timedatectl | grep 'Time zone' | cut -d ':' -f 2 | awk '{ print $1 }'`
+TIMEZONE=$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')
 # Maximum time single test is allowed to run in seconds. (10 min)
 MAX_SINGLE_TEST_TIME=600
+# Docker registry to pull images from
+REGISTRY="ihorolkhovskyi"
 
 # TLS-WSS proxy port parameters, change them only if you know what you are doing
 OPENSIPS_TLS_PORT=6051
@@ -73,6 +75,7 @@ control_opensips() {
             --env VP_TLS_PORT=`echo $[${VP_PORT} + 1]` \
             --net=host \
             --rm \
+            --platform linux/amd64 \
             -d \
             ${PROXY_IMAGE} >> /dev/null
         # Give a time to start the container and push it a bit
@@ -110,6 +113,7 @@ run_voip_patrol() {
         --volume ${DIR_PREFIX}/voice_ref_files:/voice_ref_files${VOLUME_SUFFIX} \
         --net=host \
         --rm \
+        --platform linux/amd64 \
         ${BG_RUN} \
         ${VP_IMAGE} ${OUT_REDIRECT}
 
@@ -135,6 +139,7 @@ run_prepare() {
         --volume ${DIR_PREFIX}/tmp/input:/opt/output${VOLUME_SUFFIX} \
         --net=none \
         --rm \
+        --platform linux/amd64 \
         ${P_IMAGE}
 }
 
@@ -150,6 +155,7 @@ run_report() {
         --volume ${DIR_PREFIX}/tmp/output:/opt/report${VOLUME_SUFFIX} \
         --net=none \
         --rm \
+        --platform linux/amd64 \
         ${R_IMAGE}
 }
 
@@ -167,6 +173,7 @@ run_database() {
         --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/database.xml:/xml/${CURRENT_SCENARIO}.xml${VOLUME_SUFFIX} \
         --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
         --rm \
+        --platform linux/amd64 \
         ${D_IMAGE}
 }
 
@@ -189,6 +196,7 @@ run_sipp() {
         --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/sipp.xml:/xml/${CURRENT_SCENARIO}.xml${VOLUME_SUFFIX} \
         --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
         --rm \
+        --platform linux/amd64 \
         ${BG_RUN} \
         ${SIPP_IMAGE} ${OUT_REDIRECT}
 
@@ -210,11 +218,44 @@ run_media() {
         --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
         --net=none \
         --rm \
+        --platform linux/amd64 \
         ${M_IMAGE}
 }
 
 cleanup_opensips_cache() {
     docker exec ${PROXY_CONTAINER_NAME} /usr/bin/opensips-cli -x mi cache_remove_chunk "*" >> /dev/null 2>&1
+}
+
+check_images() {
+    missing=""
+    for comp in $COMPONENTS; do
+        if ! docker image inspect "volts_$comp:latest" > /dev/null 2>&1; then
+            missing="$missing $comp"
+        fi
+    done
+
+    [ -z "$missing" ] && return 0
+
+    echo "Missing local images:$missing"
+    echo "Attempting to pull from registry..."
+
+    failed=""
+    for comp in $missing; do
+        echo -n "  Pulling $comp... "
+        if docker pull "$REGISTRY/$comp" > /dev/null 2>&1; then
+            docker tag "$REGISTRY/$comp" "volts_$comp:latest"
+            echo "OK"
+        else
+            failed="$failed $comp"
+            echo "FAILED"
+        fi
+    done
+
+    if [ -n "$failed" ]; then
+        echo "Could not pull the following images:$failed"
+        echo "Build them locally with: ./build.sh"
+        exit 1
+    fi
 }
 
 delete_containers() {
@@ -416,6 +457,7 @@ clean_tmp() {
 # Script controlled variables
 DIR_PREFIX=`pwd`
 SCENARIOS=()
+COMPONENTS="prepare vp report database media sipp opensips"
 
 # Determin if we're running script using podman
 VOLUME_SUFFIX=`docker --version 2>/dev/null | grep -qi "podman" && echo ":z" || echo ""`
@@ -503,8 +545,9 @@ if [ ${#SCENARIOS[@]} -eq 1 ]; then
         echo -n "Running only report"
 
         run_report
+        VOLTS_EXIT=$?
         delete_containers
-        exit 0
+        exit ${VOLTS_EXIT}
     fi
 fi
 
@@ -530,6 +573,7 @@ for S in "${SCENARIOS[@]}"; do
 done
 SCENARIOS=("${PROCESSED_SCENARIOS[@]}")
 
+check_images
 clean_tmp
 run_prepare
 
@@ -540,10 +584,7 @@ fi
 
 TIME_TOTAL_START=`date +%s`
 
-rm -f ${DIR_PREFIX}/tmp/output/${D_RESULT_FILE}
-rm -f ${DIR_PREFIX}/tmp/output/${M_RESULT_FILE}
-rm -f ${DIR_PREFIX}/tmp/output/${VP_RESULT_FILE}
-rm -f ${DIR_PREFIX}/tmp/output/${SIPP_RESULT_FILE}
+rm -f ${DIR_PREFIX}/tmp/output/*
 delete_containers
 
 # Start WSS-TLS proxy
@@ -570,11 +611,15 @@ if [ -f ${DIR_PREFIX}/tmp/input/websocket.need ]; then
 fi
 
 run_report
+VOLTS_EXIT=$?
 delete_containers
 
 TIME_TOTAL_END=`date +%s`
 TIME_TOTAL_RUN=$((${TIME_TOTAL_END} - ${TIME_TOTAL_START}))
-HMS_TOTAL_RUN=`date -d@${TIME_TOTAL_RUN} -u +%H:%M:%S`
+HMS_TOTAL_RUN=$(printf '%02d:%02d:%02d' \
+    $(( TIME_TOTAL_RUN / 3600 )) \
+    $(( (TIME_TOTAL_RUN % 3600) / 60 )) \
+    $(( TIME_TOTAL_RUN % 60 )))
 echo "Total time taken: ${HMS_TOTAL_RUN}"
 
-exit 0
+exit ${VOLTS_EXIT}
