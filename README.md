@@ -302,10 +302,11 @@ Media check is also described in XML
 | `file` | Mandatory. Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names, see the example below for a better picture |
 | `delete_after` | Do we delete file after media check? `yes`/`no`/`keep_failed`. `keep_failed` by default. This means we keep the file if the media test did not passed |
 | `print_debug` | Print debug info on file on the console while testing. Useful for adjusting `filter` parameters or getting actual fingerprint via `fpcalc`. `yes`/`no`. `no` by default |
+| `length` | Expected length of a sound file in seconds. Supports `<min>-<max>` format. (In a case of `sox` uses `length s` field, see below) |
 | `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
 | `fingerprint` | Used if `type` is `fpcalc`. Fingerprint in a `-raw` form obtained from `fpcalc` tool |
-| `length` | Used if `type` is `fpcalc`. Expected length of a sound file in seconds. Supports `<min>-<max>` format |
 | `likeness` | Used if `type` is `fpcalc`. Minimal likeness or similarity. Default value - `0.9`. See the explanation below |
+| `max_offset` | Used if `type` is `fpcalc`. Possible integer offset when comparing fingerprints. Each `N` corresponds roughly to 0.5s. Allows to check if you expect sort of audio "drifts" during the test |
 
 ##### SoX media check
 Within this check parameters from the `file` are collected by `sox` utility, more precisely - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
@@ -315,7 +316,8 @@ In a `sox_filter` attribute you can write a string to check some given values ag
 sox_filter="length s -ge 10; length s -le 11"
 ```
 Here we have 1 parameter - `length s` that should be greater than or equal 10 and less than or equal 11. `length s` is one of the result parameters that are obtained by `sox <file> -n stats`.</br>
-Point here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators.
+Point here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators.</br>
+*Note: in a case of length you can use `length` parameter, like `length="10-11"` for shorter notation.*</br>
 This is done due to traditional comparison symbols (`<`,`>`) are part of XML notation</br>
 Getting parameters names is simple - they are converted from `sox` outputs, for example:
 ```
@@ -375,8 +377,9 @@ All number-like values are automatically treated as numbers and you can apply `-
     <section type="media_check">
         <actions>
             <action type="sox_st"
+                <!-- The same can be achieved with length="10-11" option -->
                 sox_filter="length s -ge 10; length s -le 11"
-                <!-- File name is the same as in the "record" attribute in the "call" action above -->
+                 <!-- File name is the same as in the "record" attribute in the "call" action above -->
                 file="{{ scenario_name }}.wav"
             />
         </actions>

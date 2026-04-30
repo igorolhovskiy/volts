@@ -154,6 +154,20 @@ for action in actions:
     if media_type_check in ('sox', 'sox_st'):
 
         sox_filter = action.attrib.get('sox_filter', '')
+        sox_filter_length = action.attrib.get('length')
+        if sox_filter_length is not None:
+            if "-" in sox_filter_length:
+                sox_filter_length = sox_filter_length.split('-')
+                if len(sox_filter_length) == 2:
+                    l_max = float(sox_filter_length[1])
+                    l_min = float(sox_filter_length[0])
+                    sox_filter += f"; length s -ge {l_min}; length s -le {l_max}"
+                else:
+                    # Make sure we will fail on incorrect input data
+                    sox_filter += f"; length s -eq -1"
+            else:
+                sox_filter += f"; length s -eq {sox_filter_length}"
+
         silence_trim = True if media_type_check == 'sox_st' else False
         tool_name = "SoX Silece Trim" if media_type_check == 'sox_st' else "SoX"
 
@@ -208,16 +222,27 @@ for action in actions:
 
         fpcalc_offset = int(action.attrib.get('max_offset', 50))
         fpcalc_likeness = float(action.attrib.get('likeness', 0.9))
+
         fpcalc_duration = action.attrib.get('length')
         if fpcalc_duration is not None:
             if "-" in fpcalc_duration:
                 fpcalc_duration = fpcalc_duration.split('-')
+                # Make sure we will fail on non-correct data
+                fpcalc_dmax = fpcalc_dmin = -1
                 if len(fpcalc_duration) == 2:
                     fpcalc_dmax = float(fpcalc_duration[1])
                     fpcalc_dmin = float(fpcalc_duration[0])
             else:
                 fpcalc_dmax = float(fpcalc_duration)
                 fpcalc_dmin = fpcalc_dmax
+
+        fpcalc_max_offset = action.attrib.get('max_offset', 0)
+        try:
+            fpcalc_max_offset = int(fpcalc_max_offset)
+        except ValueError:
+            logger.info("Resetting fpcalc max_offset to 0")
+            fpcalc_max_offset = 0
+
 
         logger.info(f"Start fpcalc processing over {media_file}")
 
@@ -228,7 +253,7 @@ for action in actions:
 
             fpcalc_file = Chromaprint(media_file)
             fpcalc_file._set_fpcalc_fingerprint()
-            likeness, best_offset = fpcalc_file.get_likeness(fpcalc_fp)
+            likeness, best_offset = fpcalc_file.get_likeness(fpcalc_fp, fpcalc_max_offset)
             duration = fpcalc_file.get_duration()
 
             if print_debug in ('true', 'yes', '1', 'on'):
