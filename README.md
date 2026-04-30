@@ -306,7 +306,7 @@ Media check is also described in XML
 | `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
 | `fingerprint` | Used if `type` is `fpcalc`. Fingerprint in a `-raw` form obtained from `fpcalc` tool |
 | `likeness` | Used if `type` is `fpcalc`. Minimal likeness or similarity. Default value - `0.9`. See the explanation below |
-| `max_offset` | Used if `type` is `fpcalc`. Possible integer offset when comparing fingerprints. Each `N` corresponds roughly to 0.5s. Allows to check if you expect sort of audio "drifts" during the test |
+| `max_offset` | Used if `type` is `fpcalc`. Possible integer offset when comparing fingerprints. Each `N` corresponds roughly to 0.5s. Allows to check if you expect sort of audio "drifts" during the test. `0` by default |
 
 ##### SoX media check
 Within this check parameters from the `file` are collected by `sox` utility, more precisely - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
