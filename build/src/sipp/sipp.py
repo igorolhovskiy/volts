@@ -105,7 +105,9 @@ def call_sipp(scenario_path, target, transport, log_level, max_calls, call_rate,
         cmd.extend(['-t', f"l{socket_extender}", '-tls_cert', '/etc/ssl/certs/ssl-cert-snakeoil.pem', '-tls_key', '/etc/ssl/private/ssl-cert-snakeoil.key'])
         # Check for port in a case of TLS transport
         if ':' not in target:
-            cmd.extend([f"{target}:5061"])
+            cmd.append(f"{target}:5061")
+        else:
+            cmd.append(target)
     else:
         # UDP
         cmd.extend(['-t', f"u{socket_extender}", target])
@@ -342,7 +344,7 @@ report['error'] = call_sipp(
                         log_level=log_level,
                         max_calls=max_calls,
                         call_rate=call_rate,
-                        max_ccalls=max_calls,
+                        max_ccalls=max_ccalls,
                         total_timeout=total_timeout,
                         socket_mode=socket_mode,
                         logger=logger

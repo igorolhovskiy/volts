@@ -39,7 +39,7 @@ def scenario_from_template(scenario_name, config):
     if not scenario_file_path.endswith(".xml"):
         return
 
-    with open(r'{}'.format(scenario_file_path)) as template_file:
+    with open(scenario_file_path) as template_file:
         template = env.from_string(template_file.read())
 
     # We're adding scenario (file) name to be accessible in template variables
@@ -57,7 +57,7 @@ def scenario_from_template(scenario_name, config):
 
 def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
     '''
-    Funciton that returns dict of ET.ElementTree XML structures
+    Function that returns dict of ET.ElementTree XML structures
     for voip_patrol and database config
     '''
     parser = ET.XMLParser(strip_cdata=False, remove_comments=True)
@@ -65,11 +65,11 @@ def separate_scenario(scenario, combined_config, name='', log_level=0, tags=()):
     try:
         root = ET.fromstring(scenario, parser)
     except Exception as e:
-        logger.error(f"Problem processing {scenario} scenario: {e}")
+        logger.error(f"Problem processing {name} scenario: {e}")
         return None
 
     if root.tag != 'config':
-        logger.error(f"Root element is not <config> in {scenario}")
+        logger.error(f"Root element is not <config> in {name}")
         return None
 
     scenario_tags = root.attrib.get('tag', '').split(',')
@@ -177,7 +177,7 @@ def get_vp_config(config, name='', log_level=0):
 
     for elem in actions:
         if elem.tag == 'action':
-            # Relpace wss transport with tls
+            # Replace wss transport with tls
             if elem.attrib.get('transport') == 'wss':
                 elem.set('transport', 'tls')
                 # Raise a flag, that opensips proxy needs to be involved.
@@ -246,7 +246,7 @@ def get_database_config(config, combined_config):
 
         current_db_info = ET.SubElement(action, 'info', attrib=None, nsmap=None)
         for k, v in current_db_config.items():
-            current_db_info.attrib[k] = v
+            current_db_info.attrib[k] = str(v)
 
     root = ET.Element('config', attrib=None, nsmap=None)
     root.append(actions)
@@ -280,7 +280,7 @@ logger = setup_logger(__name__, log_level)
 error_reporter = ErrorReporter(logger)
 
 # Get tags if any
-tags = os.environ.get('TAG', '').split(',')
+tags = os.environ.get("TAG", "").split(',')
 # Remove empty strings
 tags = tuple([x for x in tags if x])
 
@@ -291,7 +291,7 @@ try:
     try:
         os.remove("/opt/output/scenarios.done")
         os.remove("/opt/output/websocket.need")
-    except:
+    except (FileNotFoundError, OSError):
         pass
 
     with open(r"/opt/input/config.yaml") as config_file:
@@ -330,7 +330,7 @@ try:
             if type(key) is str and key.isnumeric():
                 account_config_mixed[int(key)] = account_config_mixed[key]
 
-    single_scenario = os.environ.get('SCENARIO_NAME')
+    single_scenario = os.environ.get("SCENARIO_NAME")
 
     combined_config = {
         "a": account_config_mixed,
@@ -350,9 +350,9 @@ try:
         for filename in os.listdir('/opt/input'):
             process_scenario(filename, combined_config, log_level, tags)
 
-    pathlib.Path('/opt/output/scenarios.done').touch(mode=777)
+    pathlib.Path('/opt/output/scenarios.done').touch(mode=0o777)
     if websocket_proxy_needed:
-        pathlib.Path('/opt/output/websocket.need').touch(mode=777)
+        pathlib.Path('/opt/output/websocket.need').touch(mode=0o777)
 
 
 except Exception as e:

@@ -74,22 +74,71 @@ In a case if `voip_patrol` or `sipp` is updated, you need to rebuild these conta
 ```
 
 ## Running
+
+After building, just run
 ```sh
 ./run.sh
 ```
-Simple, isn't it? This will run all scenarios found in `scenarios` folder one by one. To run a single scenario, run
+Simple, isn't it? This will run all scenarios found in `scenarios` folder one by one.
+
+### Command Line Options
+
+The `run.sh` script supports various command-line options for flexible test execution:
+
+#### Basic Usage
 ```sh
-./run.sh <scenario_name>
+./run.sh [OPTIONS] [SCENARIO]
 ```
-or
+
+#### Available Options
+- `-h, --help` - Show help message with all available options
+- `-l, --log-level N` - Set log level (0=silent, 1=normal, 2=verbose, 3=debug)
+- `-r, --report TYPE` - Set report type (table|json|table_full|json_full)
+- `-t, --timeout N` - Set maximum test time in seconds
+- `-v, --verbose` - Enable verbose output (equivalent to -l 2)
+- `-d, --debug` - Enable debug output (equivalent to -l 3)
+- `--tls-port N` - Set OpenSIPS TLS port
+- `--wss-port N` - Set OpenSIPS WSS port
+- `--heps-port N` - Set HEP source port
+- `--hepd-port N` - Set HEP destination port
+
+#### Scenario Options
+- `<scenario_name>` - Run specific scenario (e.g., 001-register)
+- `scenarios/<scenario_name>` - Run specific scenario with full path
+- `tag=<tags>` - Run scenarios with specific tags (e.g., tag=set1,set2)
+- `stop` - Stop and delete all containers
+- `sngrep` - Launch SIP packet capture tool
+- `dbclean` - Clean up test data from databases
+
+#### Examples
 ```sh
-./run.sh scenarios/<scenario_name>
+# Run all scenarios
+./run.sh
+
+# Run specific scenario
+./run.sh 001-register
+./run.sh scenarios/001-register.xml
+
+# Run with debug logging
+./run.sh -l 3 001-register
+./run.sh --debug 001-register
+
+# Run with JSON output and verbose logging
+./run.sh -r json -v
+
+# Run scenarios with specific tags
+./run.sh tag=smoke,regression
+
+# Run with custom timeout
+./run.sh --timeout 300 001-register
+
+# Utility commands
+./run.sh stop          # Stop all containers
+./run.sh sngrep        # Launch SIP packet capture
+./run.sh dbclean       # Clean up databases
 ```
-To get a set of tests running, usig `tag` keyword, see a how-to below
-```sh
-./run.sh tag=...
-```
-After running of the suite you can always find a `voip_patrol` presented results in `tmp/output` folder.
+
+After running the suite you can always find `voip_patrol` presented results in `tmp/output` folder.
 
 But simply run something blindly is boring, so before this, best to do some
 
@@ -102,20 +151,18 @@ We suppose to configure 2 parts here. First, and most complexes are
 `VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database`, and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
 Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to [`jinja2-time`](https://github.com/hackebrot/jinja2-time) documentation.</br>
 As you will see below, the core for all type of tests are actually `voip_patrol` or `sipp`, others are just helpers around.
-
 #### Global config
 
 Values for templates are taken from `scenarios/config.yaml`</br>
 One thing to mention here, is that vars from `global` section transform to `c.` (for `config` or `g.` for `global`, `c.` and `.g` are equal) and from `accounts` to `a.` in templates for shorter notation.</br>
 There is a special name `scenario_name` that is transforming to a scenario file name stripped `.xml` extension.</br>
-All settings from `global` section are inherited to the `accounts` section automatically unless they are defined there explicitly.</br>
 There is also `env` variable that exposes system environment variables to templates. Use it when you need to pass runtime values without modifying `config.yaml`:
-
 ```xml
 {{ env.MY_VAR }}                        <!-- empty string if not set -->
 {{ env.MY_VAR | default('fallback') }}  <!-- explicit fallback value -->
 {{ env.DOMAIN | default(c.domain) }}    <!-- fall back to config.yaml value -->
 ```
+Also, all settings from `global` section are inherited to the `accounts` section automatically unless they are defined there explicitly.</br>
 
 `config.yaml`
 ```yaml
@@ -145,7 +192,6 @@ accounts:
     auth_username:  '90001'
     password:       'SuperSecretPass3'
 ```
-
 #### VoIP - patrol
 To get most of it, please refer to [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol) config, but here follows some basic example to show the idea of the templating.</br></br>
 **Make a register**
@@ -245,13 +291,14 @@ Database config is also done in XML, section `database`. We have 2 `stage`s of d
 | `post` | Obviously, running after `voip_patrol`. For cleanup data inserted in `pre` stage. |
 
 
-So, inside the `database` action you specify the tables you're working with. Each `table` section has 4 attributes.
+So, inside the `database` action you specify the tables you're working with. Each `table` section has these attributes.
 | Attribute | Description |
 | --- | --- |
 | `name` | Actually name of the table we're working with. |
-| `type` | Could be `insert`, `replace` and `delete`. Forming actual `INSERT`, `REPLACE` and `DELETE` SQL statements for the database. |
+| `type` | Could be `insert`, `replace`, `delete` and `check`. Forming actual `INSERT`, `REPLACE`, `DELETE` and `SELECT COUNT(*)` SQL statements for the database. |
 | `continue_on_error` | Optional. Em.. ignore errors on performed actions and continue no matter what. By default database actions will be stopped after encountering the first error. |
-| `cleanup_after_test` | Optional. Allows you not to write an explicit `post` stage for your `insert` types. Will automatically form `delete` type on `post` stage for all `insert` (but not `replace`) that were declared on `pre` stage |
+| `cleanup_after_test` | Optional. For `insert`: automatically forms a `delete` on `post` stage. For `check`: deletes matching rows immediately after the check passes. |
+| `row_nums` | Required for `check`. Expected number of matching rows — exact (`"1"`) or range (`"1-3"`). |
 
 **Make a register with the database**
 ```xml
@@ -259,8 +306,8 @@ So, inside the `database` action you specify the tables you're working with. Eac
 <config>
     <section type="database">
         <actions>
-             <!-- "sippproxydb" here is referring to an entity in "databases" from config.yaml. -->
-            <action database="sippproxydb" stage="pre">
+             <!-- "kamdb" here is referring to an entity in "databases" from config.yaml. -->
+            <action database="kamdb" stage="pre">
                 <!-- what data are we gonna insert into the "subscriber" table? -->
                 <table name="subscriber" type="insert" cleanup_after_test="true">
                     <field name="username" value="{{ a.88881.username }}"/>
@@ -288,6 +335,83 @@ So, inside the `database` action you specify the tables you're working with. Eac
             />
             <!-- Just wait 2 sec for all timeouts -->
             <action type="wait" complete="true" ms="2000"/>
+        </actions>
+    </section>
+</config>
+```
+##### Checking database state after a call
+
+The `check` type verifies that database got the expected rows during a test. CDR as is. It runs `SELECT COUNT(*)` with the specified field conditions and fails the scenario if the count doesn't match `row_nums`.
+
+Two useful features for time-scoped checks:
+
+- Prefix a `value` with a bash-style operator flag — the same convention used in `sox_filter`. Supported flags: `-eq` `=`, `-ne` `!=`, `-lt` `<`, `-le` `<=`, `-gt` `>`, `-ge` `>=`, `-like` `LIKE`. Without a flag, `=` is assumed (or `LIKE` when the value contains `%`).
+- Use `{test_start}` and `{test_end}` tokens anywhere in a `value` to reference when the scenario started and finished. These are **not** Jinja2 — they pass through the prepare step unchanged and are substituted at runtime by the database container. An optional strftime format can be appended after `:`, for example `{test_start:%Y-%m-%d %H:%M}`.
+
+**Verify a call was recorded in Asterisk CDR**
+
+After a completed call, Asterisk writes a row to its `cdr` table. The example below makes a call and then asserts in the `post` stage that the row exists. The `calldate` range pins the check to rows written during this specific test run, so a stale CDR from a previous run of the same scenario won't cause a false pass.
+
+```xml
+<config>
+    <section type="database">
+        <actions>
+            <!-- Check that Asterisk wrote a CDR row for this call -->
+            <action database="astdb" stage="post">
+                <table name="cdr" type="check" row_nums="1">
+                    <field name="src"         value="{{ a.90001.label }}"/>
+                    <field name="dst"         value="{{ a.88881.label }}"/>
+                    <field name="disposition" value="ANSWERED"/>
+                    <!-- Scope to rows written during this test run only -->
+                    <field name="calldate"    value="-ge {test_start}"/>
+                    <field name="calldate"    value="-le {test_end}"/>
+                </table>
+            </action>
+        </actions>
+    </section>
+    <section type="voip_patrol">
+        <actions>
+            <action type="codec" disable="all"/>
+            <action type="codec" enable="pcma" priority="250"/>
+            <action type="codec" enable="pcmu" priority="249"/>
+            <action type="register" label="Register {{ a.88881.label }}"
+                transport="{{ a.88881.transport }}"
+                account="{{ a.88881.label }}"
+                username="{{ a.88881.username }}"
+                auth_username="{{ a.88881.auth_username }}"
+                password="{{ a.88881.password }}"
+                registrar="{{ c.domain }}"
+                realm="{{ c.domain }}"
+                expected_cause_code="200"
+                srtp="{{ a.88881.srtp }}"
+            />
+            <action type="wait" complete="true" ms="2000"/>
+            <action type="accept" label="Receive call on {{ a.88881.label }}"
+                call_count="1"
+                match_account="{{ a.88881.label }}"
+                hangup="10"
+                code="200" reason="OK"
+                transport="{{ a.88881.transport }}"
+                srtp="{{ a.88881.srtp }}"
+                play="{{ c.play_file }}"
+            />
+            <action type="call" label="Call {{ a.90001.label }} -> {{ a.88881.label }}"
+                transport="{{ a.90001.transport }}"
+                expected_cause_code="200"
+                caller="{{ a.90001.label }}@{{ c.domain }}"
+                callee="{{ a.88881.label }}@{{ c.domain }}"
+                from="sip:{{ a.90001.label }}@{{ c.domain }}"
+                to_uri="{{ a.88881.label }}@{{ c.domain }}"
+                max_duration="20" hangup="10"
+                auth_username="{{ a.90001.username }}"
+                password="{{ a.90001.password }}"
+                realm="{{ c.domain }}"
+                rtp_stats="true"
+                max_ring_duration="15"
+                srtp="{{ a.90001.srtp }}"
+                play="{{ c.play_file }}"
+            />
+            <action type="wait" complete="true" ms="30000"/>
         </actions>
     </section>
 </config>
@@ -502,11 +626,9 @@ That means your system is not OK, or something need to be tuned with the tests.<
 Not really much to describe here, just read info on the console
 
 ## Scenario Examples
-
 Examples shown in this section can duplicate examples from the section above. For more examples, refer to the `scenarios` folder.</br>
-
 ### Make a successful register
- * Here we assume that account data is known to our target system, ex. PBX.
+ * Here we assume that account data is known to our PBX.
 ```xml
 <config>
     <section type="voip_patrol">

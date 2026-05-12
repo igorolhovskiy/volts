@@ -252,23 +252,23 @@ class SoXProcess:
                 print(f"SoX Process warning: parameter <{parameter}> not present in file stats")
                 continue
             file_stats_value = self.file_stats[parameter]
-            comparsion_function = getattr(file_stats_value, operator, None)
+            comparison_function = getattr(file_stats_value, operator, None)
 
-            if comparsion_function is None:
+            if comparison_function is None:
                 print(f"SoX Process warning: operator <{operator}> is not supported")
                 continue
 
-            if comparsion_function(value):
+            if comparison_function(value):
                 continue
 
-            faled_condition_desc = {
+            failed_condition_desc = {
                 'parameter': parameter,
                 'operator': operator,
                 'actual_value': file_stats_value,
                 'expected_value': value
             }
 
-            error_result.append(faled_condition_desc)
+            error_result.append(failed_condition_desc)
 
         if len(error_result) == 0:
             return None

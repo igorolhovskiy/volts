@@ -120,7 +120,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
                     test_results[current_test]["status_text"] = "Start/End are not aligned"
 
                     test_results[previous_test]["status"] = "FAIL"
-                    test_results[previous_test]["status"] = "Start/End are not aligned"
+                    test_results[previous_test]["status_text"] = "Start/End are not aligned"
 
                     current_test = "orphaned"
                     continue
@@ -159,12 +159,13 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
 
 
                 if test_results[current_test].get("tests"):
+                    test_failed_count = 0
                     for test_result_line in test_results[current_test]["tests"].values():
-                        test_failed_count = 0
                         if test_result_line.get("result") == "FAIL":
                             test_failed_count += 1
-                            test_results[current_test]["status"] = "FAIL"
-                            test_results[current_test]["status_text"] = f"{test_failed_count} tests has failed"
+                    if test_failed_count > 0:
+                        test_results[current_test]["status"] = "FAIL"
+                        test_results[current_test]["status_text"] = f"{test_failed_count} test(s) failed"
 
                 if test_results[current_test]["status"] != "FAIL":
                     test_results[current_test]["status"] = "PASS"
@@ -214,6 +215,8 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
     # Add results for SIPP scenarios
     for test_entity in sipp_report_data:
         current_test = test_entity.get('scenario')
+        if not current_test:
+            continue
         if current_test in test_results:
             continue
 
@@ -244,6 +247,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
 
         if current_test_d_status != "PASS":
             test_results[current_test]["d_status"] = "FAIL"
+            test_results[current_test]["status"] = "FAIL"
             if "d_error" not in test_results[current_test]:
                 test_results[current_test]["d_error"] = {}
                 test_results[current_test]["d_error"]["stage"] = ""
@@ -254,6 +258,7 @@ def build_test_results(vp_report_data, d_report_data, m_report_data, sipp_report
 
             test_results[current_test]["d_error"]["stage"] += f"{stage_name_txt} "
             test_results[current_test]["d_error"]["text"] += f"{stage_err_txt} "
+            test_results[current_test]['status_text'] = test_results[current_test].get('status_text', '') + " Database failed"
             continue
 
         if not current_test_d_existing_status:
@@ -363,7 +368,7 @@ def filter_results_default(test_results):
                     continue
                 failed_tests[test_name] = test_details
 
-        if len(failed_tests) > 1:
+        if len(failed_tests) > 0:
             printed_results[scenario_name]["failed_tests"] = failed_tests
 
     status = None
@@ -479,7 +484,7 @@ def print_results_table_full(test_results):
 try:
     vp_report_file_name = os.environ.get("VP_RESULT_FILE", "result.jsonl")
     vp_report_file_path = r'/opt/report/' + vp_report_file_name
-    vp_report_data = {}
+    vp_report_data = []
 
     if os.path.exists(vp_report_file_path):
         with open(vp_report_file_path) as report_file:
@@ -489,7 +494,7 @@ try:
 
     sipp_report_file_name = os.environ.get("SIPP_RESULT_FILE", "sipp.jsonl")
     sipp_report_file_path = r'/opt/report/' + sipp_report_file_name
-    sipp_report_data = {}
+    sipp_report_data = []
 
     if os.path.exists(sipp_report_file_path):
         with open(sipp_report_file_path) as report_file:
@@ -499,7 +504,7 @@ try:
 
     d_report_file_name = os.environ.get("D_RESULT_FILE", "database.jsonl")
     d_report_file_path = r'/opt/report/' + d_report_file_name
-    d_report_data = {}
+    d_report_data = []
 
     if os.path.exists(d_report_file_path):
         with open(d_report_file_path) as report_file:
@@ -509,7 +514,7 @@ try:
 
     m_report_file_name = os.environ.get("M_RESULT_FILE", "media_check.jsonl")
     m_report_file_path = r'/opt/report/' + m_report_file_name
-    m_report_data = {}
+    m_report_data = []
 
     if os.path.exists(m_report_file_path):
         with open(m_report_file_path) as report_file:

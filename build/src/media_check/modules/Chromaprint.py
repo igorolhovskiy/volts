@@ -60,7 +60,7 @@ class Chromaprint:
             self._set_fpcalc_fingerprint()
             fp1 = self.fingerprint
 
-        for offset in range(-max_offset, max_offset):
+        for offset in range(-max_offset, max_offset + 1):
             if offset >= 0:
                 a, b = fp1[offset:], fp2
             else:
@@ -96,7 +96,12 @@ class Chromaprint:
 
     def get_likeness(self, fingerprint: list, offset=0) -> tuple:
 
-        fp2 = [int(f) for f in fingerprint if f.isdigit()]
+        fp2 = []
+        for f in fingerprint:
+            try:
+                fp2.append(int(f.strip()))
+            except (ValueError, AttributeError):
+                pass
         # If no fingerprint provided - files considered identical
         if len(fp2) == 0:
             return 100, 0

@@ -138,8 +138,6 @@ for action in actions:
         logger.warning("<file> attribute not found, skipping...")
         continue
 
-    media_file_st = media_file
-
     media_type_check = media_type_check.lower()
     error_msg = ""
 
@@ -169,7 +167,7 @@ for action in actions:
                 sox_filter += f"; length s -eq {sox_filter_length}"
 
         silence_trim = True if media_type_check == 'sox_st' else False
-        tool_name = "SoX Silece Trim" if media_type_check == 'sox_st' else "SoX"
+        tool_name = "SoX Silence Trim" if media_type_check == 'sox_st' else "SoX"
 
         logger.info(f"Start {tool_name} processing over {media_file}")
 
@@ -220,7 +218,6 @@ for action in actions:
         fpcalc_dmax = 0
         fpcalc_dmin = 0
 
-        fpcalc_offset = int(action.attrib.get('max_offset', 50))
         fpcalc_likeness = float(action.attrib.get('likeness', 0.9))
 
         fpcalc_duration = action.attrib.get('length')
@@ -243,14 +240,12 @@ for action in actions:
             logger.info("Resetting fpcalc max_offset to 0")
             fpcalc_max_offset = 0
 
-
         logger.info(f"Start fpcalc processing over {media_file}")
 
-        if len(fpcalc_fp) == 0:
+        if not any(f.strip() for f in fpcalc_fp):
             logger.warning(f"<fingerprint> for media type <fpcalc> is empty, is it for purpose?")
 
         try:
-
             fpcalc_file = Chromaprint(media_file)
             fpcalc_file._set_fpcalc_fingerprint()
             likeness, best_offset = fpcalc_file.get_likeness(fpcalc_fp, fpcalc_max_offset)

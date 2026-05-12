@@ -164,12 +164,14 @@ run_database() {
         return
     fi
 
-    eval docker run --name=${D_CONTAINER_NAME} \
+    docker run --name=${D_CONTAINER_NAME} \
         --env SCENARIO=`echo ${CURRENT_SCENARIO}` \
         --env RESULT_FILE=`echo ${D_RESULT_FILE}` \
         --env LOG_LEVEL=`echo ${LOG_LEVEL}` \
         --env STAGE=`echo ${1}` \
         --env TZ=`echo ${TIMEZONE}` \
+        --env TEST_START_TIME="`echo ${TEST_START_TIME}`" \
+        --env TEST_END_TIME="`echo ${TEST_END_TIME}`" \
         --volume ${DIR_PREFIX}/tmp/input/${CURRENT_SCENARIO}/database.xml:/xml/${CURRENT_SCENARIO}.xml${VOLUME_SUFFIX} \
         --volume ${DIR_PREFIX}/tmp/output:/output${VOLUME_SUFFIX} \
         --rm \
@@ -277,9 +279,11 @@ delete_containers() {
 }
 
 run_scenario() {
+    TEST_START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
     run_database pre
     run_voip_patrol
     run_sipp
+    TEST_END_TIME=$(date '+%Y-%m-%d %H:%M:%S')
     run_database post
     run_media
     if [ -f ${DIR_PREFIX}/tmp/input/websocket.need ]; then
