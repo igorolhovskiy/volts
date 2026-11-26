@@ -1,2 +1,2 @@
-psycopg2==2.9.10
-PyMySQL==1.1.1
+psycopg2==2.9.13
+PyMySQL==1.2.4
